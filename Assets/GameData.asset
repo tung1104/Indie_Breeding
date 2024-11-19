@@ -1,0 +1,322 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8a90d32bf63f7c544956975985b84873, type: 3}
+  m_Name: GameData
+  m_EditorClassIdentifier: 
+  CSV_URL: https://docs.google.com/spreadsheets/d/12u7YGB4HeKG5tHKzYGyROAPCT-qMkaJg7b3FmpSI9nw/export?format=csv&gid=
+  dinosPaths:
+    heads:
+    - pathInfos:
+      - {fileID: 3109181269692710466, guid: 9524292c804c9d04e83c1748f8bac4e0, type: 3}
+      - {fileID: 6238917182526509607, guid: c31468233ddec56489f12d59e119f53e, type: 3}
+    - pathInfos:
+      - {fileID: 6238917182526509607, guid: c31468233ddec56489f12d59e119f53e, type: 3}
+    - pathInfos:
+      - {fileID: 4111342529755852536, guid: 26f5eb10e213c4940b07c72f208df959, type: 3}
+    - pathInfos:
+      - {fileID: 7911193976569254030, guid: 8fd5d423eefc2f342b1b3a8ecd543463, type: 3}
+    - pathInfos:
+      - {fileID: 8995340112935430087, guid: e81fc48b605ce70498902b143fdd8fa1, type: 3}
+    - pathInfos:
+      - {fileID: 2001911705988014847, guid: c66d0bfe8ca277c4685363cca8f7b7db, type: 3}
+    bodies:
+    - pathInfos:
+      - {fileID: 724869504383854660, guid: 41c9f52538c76c641ac34570f209ed36, type: 3}
+      - {fileID: 3655679649500751378, guid: 922926eb519655a45a8e4f35bef9a01c, type: 3}
+    - pathInfos:
+      - {fileID: 3655679649500751378, guid: 922926eb519655a45a8e4f35bef9a01c, type: 3}
+    - pathInfos:
+      - {fileID: 4959971895158158413, guid: 27d1cdb4636b3d34497add48c588862c, type: 3}
+    - pathInfos:
+      - {fileID: 6637538996798121027, guid: ae33f7d47102eed4bab6568e82642738, type: 3}
+    - pathInfos:
+      - {fileID: 4029671169100186974, guid: 7a2deef8d7ce6d94981227180526e28a, type: 3}
+    - pathInfos:
+      - {fileID: 3423148928243462039, guid: ca6955701a715764f9ef7d52d0dd4c20, type: 3}
+    limbs:
+    - pathInfos:
+      - {fileID: 6894557523563854716, guid: efb7313a7c5a042428af81d81ca45aa9, type: 3}
+      - {fileID: 7902192806191792235, guid: 2abd0aa2251ec1a479047941599d209a, type: 3}
+    - pathInfos:
+      - {fileID: 7902192806191792235, guid: 2abd0aa2251ec1a479047941599d209a, type: 3}
+    - pathInfos:
+      - {fileID: 7766436733891004670, guid: 9d5efb9cbb964004e938443f3dc758ae, type: 3}
+    - pathInfos:
+      - {fileID: 482262151686622573, guid: 3e755358c54c6c5458d9b8ff9896daa0, type: 3}
+    - pathInfos:
+      - {fileID: 6546351657898828085, guid: 6c2424d40598bf84fb6b6b65ef6b15b3, type: 3}
+    - pathInfos:
+      - {fileID: 8974747136401552822, guid: ec0cec3fe69de1d43aeebbe7c6ab7ca0, type: 3}
+  dinoTextures:
+  - textures:
+    - {fileID: 2800000, guid: 81f3c044ac6776640bcf8b6202a1238a, type: 3}
+    - {fileID: 2800000, guid: e336d1df9ec703a4e92a0f1c233d80c1, type: 3}
+    - {fileID: 2800000, guid: f4f5362ccb316714c8b8122478f3362d, type: 3}
+  - textures:
+    - {fileID: 2800000, guid: 1088811b37d357b498327066048de973, type: 3}
+    - {fileID: 2800000, guid: bbc1fc1b3ef50a946b2b4b2dcdb4ef7f, type: 3}
+    - {fileID: 2800000, guid: 5469d356298279548bd108e7bef4b158, type: 3}
+  - textures:
+    - {fileID: 2800000, guid: 88a72107360a02349a66c53e7ad95dc9, type: 3}
+    - {fileID: 2800000, guid: 342388ea62537ab478805fa56bf2aa8b, type: 3}
+  - textures:
+    - {fileID: 2800000, guid: 61ea3ee03f4b9fe43844bcbcedd8cb30, type: 3}
+    - {fileID: 2800000, guid: 921b9880563c5ce4098b7246793b7674, type: 3}
+  - textures:
+    - {fileID: 2800000, guid: 8c958df1237676a4e800a002d148449b, type: 3}
+    - {fileID: 2800000, guid: 320cc99571eb52b40af7c277df7fd59e, type: 3}
+  - textures:
+    - {fileID: 2800000, guid: c811eb11049b03e4c846973cf2da5a83, type: 3}
+  eggTextures:
+  - {fileID: 2800000, guid: 31b8e0c01df0e9a448594b05403ca03a, type: 3}
+  - {fileID: 2800000, guid: 31b8e0c01df0e9a448594b05403ca03a, type: 3}
+  - {fileID: 2800000, guid: 31b8e0c01df0e9a448594b05403ca03a, type: 3}
+  dinoAccessories:
+  - dinoAccRarities:
+    - acc:
+      - {fileID: 4578515622682086989, guid: 48aeb2e9edd09fe4e8b57819319c679a, type: 3}
+    - acc:
+      - {fileID: 7024002165941458238, guid: 9831952114bea7c4b81a9bddb622b0d4, type: 3}
+    - acc:
+      - {fileID: 880808086732306089, guid: 9e15c887459532041be98edc35fcd0a4, type: 3}
+    - acc:
+      - {fileID: 4860941304818364763, guid: 3b513926ae9ceac41b26569fed9cba1a, type: 3}
+    - acc:
+      - {fileID: 5028706298913874110, guid: 1c64c233b5e3fd640a3b306b7cae69a5, type: 3}
+    - acc:
+      - {fileID: 2921583371088391708, guid: fc9bc1cb4767d6644a2fccf9c359bb94, type: 3}
+  - dinoAccRarities:
+    - acc:
+      - {fileID: 4365672288373911902, guid: f69c1bf7b87a0e04baa9b95139d10e86, type: 3}
+    - acc:
+      - {fileID: 7533357451948353156, guid: ac71172cd0c0e314db957a24b9b17be1, type: 3}
+    - acc:
+      - {fileID: 93883181699047810, guid: 129c81cd04383d549857f8249de45da6, type: 3}
+    - acc:
+      - {fileID: 4362307795435876044, guid: 2522e9c3934872947b81caad399ded90, type: 3}
+    - acc:
+      - {fileID: 8974708582025517982, guid: 3e9712393d6b18b47b1117a0def2563c, type: 3}
+    - acc:
+      - {fileID: 7418920790831093506, guid: a65d1b594976b3a4282f07629ea3aa06, type: 3}
+  - dinoAccRarities:
+    - acc:
+      - {fileID: 1114607409675510815, guid: 83b57fcee34da9f429d5900d4b99cbac, type: 3}
+    - acc:
+      - {fileID: 5760972554250325751, guid: 395d3ad8f1d207e43837be6e28b0da4f, type: 3}
+    - acc:
+      - {fileID: 5062844350508507936, guid: 4a2741e7430bd6f458e2f1302becd55f, type: 3}
+    - acc:
+      - {fileID: 1475719928734206737, guid: bfcab4e823cfb674dbdbfbd58257f167, type: 3}
+    - acc:
+      - {fileID: 4172976937879598319, guid: d9964411d3c5bd444b13b24c46c1bcb1, type: 3}
+    - acc:
+      - {fileID: 7036964832314030510, guid: 217a4d49f4ddd6b4b9a5226aff06ad6a, type: 3}
+  - dinoAccRarities:
+    - acc:
+      - {fileID: 3278268892353652487, guid: 593a4cfcc0a75cb48aaa84646d47fa52, type: 3}
+    - acc:
+      - {fileID: 5607310425739372260, guid: 34663710cfb12094982d24f9c1154286, type: 3}
+    - acc:
+      - {fileID: 1378285942848752203, guid: 400fb5aaf44f88f48912930f3536ce14, type: 3}
+    - acc:
+      - {fileID: 1444384580789362164, guid: 445caa0b87a60d44b99847f9d1ec1e8b, type: 3}
+    - acc:
+      - {fileID: 4146510583051929132, guid: 3708e0e9e2e283344b206ca6ddce1d15, type: 3}
+    - acc:
+      - {fileID: 8303234349852193862, guid: f0e98e44e57031448b809b3f76bb3a49, type: 3}
+  rarityMutation: 32000000140000000f0000000a0000000400000001000000
+  headMutationPercent: 5
+  bodyMutationPercent: 3
+  limbsMutationPercent: 4
+  textureMutationPercent: 3
+  hatMutationPercent: 6
+  wingsMutationPercent: 2
+  handMutationPercent: 3
+  tailMutationPercent: 4
+  hpMutationPercent: 25
+  atkMutationPercent: 15
+  speedMutationPercent: 20
+  mattingCoefficient: 1
+  nestCostStep: 30
+  MCONST: 200
+  GTIME: 100
+  wild_timemax: 600
+  incubatorUpgradeCosts:
+  - wood: 180
+    tooth: 180
+    bone: 90
+    stone: 0
+    specialItem: 1
+  - wood: 360
+    tooth: 360
+    bone: 180
+    stone: 0
+    specialItem: 1
+  - wood: 720
+    tooth: 720
+    bone: 360
+    stone: 0
+    specialItem: 1
+  - wood: 1440
+    tooth: 1440
+    bone: 720
+    stone: 360
+    specialItem: 1
+  - wood: 2880
+    tooth: 2880
+    bone: 1440
+    stone: 720
+    specialItem: 1
+  - wood: 5760
+    tooth: 5760
+    bone: 2880
+    stone: 1440
+    specialItem: 1
+  incubatorIndicators:
+  - basePopulation: 55
+    maxNest: 9
+    hachingBootPercent: 0
+    huntingPartySize: 3
+    eggSlot: 9
+    maxPop: 100
+  - basePopulation: 90
+    maxNest: 12
+    hachingBootPercent: 2
+    huntingPartySize: 4
+    eggSlot: 12
+    maxPop: 150
+  - basePopulation: 125
+    maxNest: 15
+    hachingBootPercent: 4
+    huntingPartySize: 5
+    eggSlot: 15
+    maxPop: 200
+  - basePopulation: 160
+    maxNest: 18
+    hachingBootPercent: 6
+    huntingPartySize: 7
+    eggSlot: 18
+    maxPop: 250
+  - basePopulation: 195
+    maxNest: 21
+    hachingBootPercent: 8
+    huntingPartySize: 9
+    eggSlot: 21
+    maxPop: 300
+  - basePopulation: 230
+    maxNest: 24
+    hachingBootPercent: 10
+    huntingPartySize: 11
+    eggSlot: 24
+    maxPop: 350
+  nestIndicatorAndCosts:
+  - nestBoost: 0
+    cost:
+      straw: 60
+      hide: 60
+      claw: 30
+      crystal: 0
+  - nestBoost: 2
+    cost:
+      straw: 240
+      hide: 240
+      claw: 120
+      crystal: 0
+  - nestBoost: 4
+    cost:
+      straw: 540
+      hide: 540
+      claw: 270
+      crystal: 135
+  - nestBoost: 6
+    cost:
+      straw: 1200
+      hide: 1200
+      claw: 600
+      crystal: 300
+  - nestBoost: 8
+    cost:
+      straw: 1500
+      hide: 1500
+      claw: 750
+      crystal: 375
+  - nestBoost: 10
+    cost:
+      straw: 0
+      hide: 0
+      claw: 0
+      crystal: 0
+  mapConfig:
+  - enemyConfigs:
+    - radiusRange: {x: 3, y: 7}
+      levelMin: 2
+      levelMax: 9
+      quant: 9
+      hp_coef: 4
+      atk_coef: 1
+      wild_coef: 5
+      dinoTypes: 00000000
+    - radiusRange: {x: 3, y: 11}
+      levelMin: 10
+      levelMax: 19
+      quant: 18
+      hp_coef: 4
+      atk_coef: 1
+      wild_coef: 5
+      dinoTypes: 00000000
+    - radiusRange: {x: 11, y: 15}
+      levelMin: 19
+      levelMax: 39
+      quant: 18
+      hp_coef: 4
+      atk_coef: 1
+      wild_coef: 5
+      dinoTypes: 01000000
+    - radiusRange: {x: 15, y: 20}
+      levelMin: 35
+      levelMax: 50
+      quant: 25
+      hp_coef: 4
+      atk_coef: 1
+      wild_coef: 5
+      dinoTypes: 0100000002000000
+    - radiusRange: {x: 20, y: 25}
+      levelMin: 35
+      levelMax: 65
+      quant: 25
+      hp_coef: 4
+      atk_coef: 1
+      wild_coef: 5
+      dinoTypes: 0100000002000000
+    - radiusRange: {x: 25, y: 30}
+      levelMin: 60
+      levelMax: 100
+      quant: 35
+      hp_coef: 4
+      atk_coef: 1
+      wild_coef: 5
+      dinoTypes: 0100000002000000
+  dinoMat: {fileID: 2100000, guid: 493aa95f0169ef845bae82450f615444, type: 2}
+  meatHunterCoef: 28000000230000001e0000001900000014000000
+  huntPartySize: 03000000040000000500000007000000090000000b000000
+  enemiesPrefab:
+  - {fileID: 278278131898861187, guid: d91435c3b633ae34c8b0176038f97d39, type: 3}
+  - {fileID: 278278131898861187, guid: 5e39608df7cb4e34585a03d6aec12c4b, type: 3}
+  - {fileID: 278278131898861187, guid: ff4297fe072e92d45bc64f8876070154, type: 3}
+  dinoPrefab: {fileID: 623576345473675947, guid: 572b8031e28936a418667eafd8bfe0cf, type: 3}
+  lineRendererPrefab: {fileID: 2697626714013132502, guid: 457deceff0b1f7a43ac74137a8bfe455, type: 3}
+  nestPrefab: {fileID: 8853945073920096079, guid: 885a7a1f35dd6834aa2dd2f427d3132f, type: 3}
+  nestEmptyPrefab: {fileID: -6283268497013750508, guid: 080607569845b1a42a78ed6c327b121e, type: 3}
+  eggPrefab: {fileID: 4898187236447892477, guid: 284ab6b8af7562f489c83be40a6dc024, type: 3}
+  hatchingRenderTexture: {fileID: 8400000, guid: fbaa1cd80ecbc8b47a4e0d8d9b164d2b, type: 2}
+  captureRenderTexture: {fileID: 8400000, guid: e87e58d3993e5fa4ba926511c5b5ea0a, type: 2}
+  incubatorItemPrefab: {fileID: 3380577627414862956, guid: 63c2760c4c5826647b87f9a78471c2af, type: 3}
