@@ -20,6 +20,8 @@ public abstract class AbilityPresenter : MonoBehaviour
     [FormerlySerializedAs("followParentPosition")]
     public bool followOriginPosition;
 
+    public bool followOriginRotation;
+
     public bool rotateTowardsDestination;
 
     public float presentUpdateRate = 10;
@@ -132,9 +134,12 @@ public abstract class AbilityPresenter : MonoBehaviour
         if (abInstance == null) return;
         if (!isPresenting) return;
 
-        if (originParent && followOriginPosition)
+        if (originParent)
         {
-            transform.position = originParent.position;
+            if (followOriginPosition)
+                transform.position = originParent.position;
+            if (followOriginRotation)
+                transform.rotation = originParent.rotation;
         }
 
         if (destinationTarget && rotateTowardsDestination)

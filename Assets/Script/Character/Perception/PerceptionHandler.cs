@@ -53,7 +53,7 @@ public class PerceptionHandler : MonoBehaviour
         rvoController.radius = capsuleRadius;
         rvoController.height = capsuleHeight;
         rvoController.center = capsuleHeight / 2f;
-        rvoController.agentTimeHorizon = 0.5f;
+        // rvoController.agentTimeHorizon = 0.5f;
 
         seeker = gameObject.AddComponent<Seeker>();
         seeker.startEndModifier.exactStartPoint = StartEndModifier.Exactness.Original;

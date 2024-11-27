@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: TestDino 1
   m_EditorClassIdentifier: 
   moveLevels:
-  - moveSpeed: 1.5
+  - moveSpeed: 2
     moveSpeedMultiplier: 10
   correctSpeedWithScale: 1
   orientationSpeed: 5
@@ -66,13 +66,17 @@ MonoBehaviour:
   moveTransitionDuration: 0
   settingsDictionary:
     keys:
-    - 
+    - Combat_Attack_0
     - 
     - 
     - 
     values:
-    - stateName: 
-      events: []
+    - stateName: Combat_Attack_0
+      events:
+      - eventName: DealDamage
+        normalizedTime: 0.505
+        eventParam1: 
+        eventParam2: 
       applyRootMotion: 0
     - stateName: 
       events: []
@@ -83,4 +87,4 @@ MonoBehaviour:
     - stateName: 
       events: []
       applyRootMotion: 0
-    count: 0
+    count: 1

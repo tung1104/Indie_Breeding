@@ -18,13 +18,13 @@ MonoBehaviour:
   animationForceLength: 0
   animationEvents:
   - eventName: ThrowPresenter
-    normalizedTime: 0.05
+    normalizedTime: 0.2
     eventParam1: Flamethrower_01
     eventParam2: Mouth
   - eventName: RecallPresenter
-    normalizedTime: 0.75
+    normalizedTime: 0.9
     eventParam1: 
     eventParam2: 
   animationApplyRootMotion: 0
-  castRange: 5
+  castRange: 7
   castFOV: 5
