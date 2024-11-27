@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a2a94c2131b8446bd8324a7a3e3b8baa, type: 3}
+  m_Name: ActiveAbility_SeaDragon_1
+  m_EditorClassIdentifier: 
+  cooldown: 0
+  duration: 0
+  animationClip: {fileID: 7400004, guid: 35b329e5e1b2f554e9a4846d5743581e, type: 3}
+  animationForceLength: 0
+  animationEvents: []
+  castRange: 0
+  castFOV: 0

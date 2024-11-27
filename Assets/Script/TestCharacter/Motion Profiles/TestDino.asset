@@ -1,0 +1,86 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 01ec7e910bfdd4cb48c0ead788f80788, type: 3}
+  m_Name: TestDino
+  m_EditorClassIdentifier: 
+  moveLevels:
+  - moveSpeed: 3
+    moveSpeedMultiplier: 10
+  correctSpeedWithScale: 1
+  orientationSpeed: 10
+  acceleration: 10
+  deceleration: 10
+  clips:
+    Idle: {fileID: -5533903024747340832, guid: 77f062f300dcce24c97cef3c946ae3b3, type: 3}
+    Jump: {fileID: 0}
+    Fall: {fileID: 0}
+    Land: {fileID: 0}
+    Die: {fileID: -4630339522487117836, guid: 77f062f300dcce24c97cef3c946ae3b3, type: 3}
+    Walk_Forward: {fileID: 2667949614841947897, guid: 77f062f300dcce24c97cef3c946ae3b3, type: 3}
+    Walk_Backward: {fileID: 0}
+    Walk_StrafeLeft: {fileID: 0}
+    Walk_StrafeRight: {fileID: 0}
+    Walk_Fwd_TurnLeft_90: {fileID: -2831327520102356535, guid: 77f062f300dcce24c97cef3c946ae3b3, type: 3}
+    Walk_Fwd_TurnRight_90: {fileID: -4385324823141643098, guid: 77f062f300dcce24c97cef3c946ae3b3, type: 3}
+    Walk_Bwd_TurnLeft_90: {fileID: 0}
+    Walk_Bwd_TurnRight_90: {fileID: 0}
+    Run_Forward: {fileID: 5522812681064789136, guid: 77f062f300dcce24c97cef3c946ae3b3, type: 3}
+    Run_Backward: {fileID: 0}
+    Run_StrafeLeft: {fileID: 0}
+    Run_StrafeRight: {fileID: 0}
+    Run_TurnLeft_90: {fileID: 0}
+    Run_TurnRight_90: {fileID: 0}
+    Sprint_Forward: {fileID: 0}
+    Sprint_TurnLeft_90: {fileID: 0}
+    Sprint_TurnRight_90: {fileID: 0}
+    TurnAroundLeft_90: {fileID: 0}
+    TurnAroundRight_90: {fileID: 0}
+    Combat_Idle: {fileID: 0}
+    Combat_Attack_0: {fileID: 6720303635017113406, guid: 77f062f300dcce24c97cef3c946ae3b3, type: 3}
+    Combat_Attack_1: {fileID: 0}
+    Combat_Attack_2: {fileID: 0}
+    Combat_Hit_0: {fileID: -8173886318068354271, guid: 77f062f300dcce24c97cef3c946ae3b3, type: 3}
+    Combat_Hit_1: {fileID: 0}
+    Combat_Hit_2: {fileID: 0}
+    Combat_Block_0: {fileID: 0}
+    Combat_Block_1: {fileID: 0}
+    Combat_Block_2: {fileID: 0}
+  settings:
+  - stateName: Combat_Attack_0
+    events:
+    - eventName: DealDamage
+      normalizedTime: 0.505
+      eventParam1: 
+      eventParam2: 
+    applyRootMotion: 0
+  minMoveVelocityMagnitude: 0
+  moveTransitionDuration: 0
+  settingsDictionary:
+    keys:
+    - 
+    - 
+    - 
+    - 
+    values:
+    - stateName: 
+      events: []
+      applyRootMotion: 0
+    - stateName: 
+      events: []
+      applyRootMotion: 0
+    - stateName: 
+      events: []
+      applyRootMotion: 0
+    - stateName: 
+      events: []
+      applyRootMotion: 0
+    count: 0

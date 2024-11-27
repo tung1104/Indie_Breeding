@@ -1,0 +1,67 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f636ee374d1f342878712dace7f68996, type: 3}
+  m_Name: AnimatorStateData
+  m_EditorClassIdentifier: 
+  animatorController: {fileID: 9100000, guid: 5bc7789c86d7a4f288bb083c4857300a, type: 2}
+  stateNames:
+  - Idle
+  - Walk_4Dir
+  - Run_4Dir
+  - Run_Forward
+  - Walk_Backward
+  - Walk_Forward
+  - Sprint_Forward
+  - Jump
+  - Fall
+  - Land
+  - Die
+  - Combat_Attack_1
+  - Combat_Attack_2
+  - Combat_Hit_1
+  - Combat_Hit_2
+  - Combat_Block_1
+  - Combat_Block_2
+  - Combat_Attack_0
+  - Combat_Hit_0
+  - Combat_Block_0
+  - Combat_Ability_0
+  - Combat_Ability_1
+  - Combat_Ability_2
+  - Combat_Block_2
+  - Combat_Block_1
+  - Combat_Hit_2
+  - Combat_Hit_1
+  - Combat_Attack_2
+  - Combat_Attack_1
+  - Idle
+  - Combat_Idle
+  - Combat_Attack_0
+  - Combat_Hit_0
+  - Combat_Block_0
+  - Combat_Ability_2
+  - Combat_Ability_1
+  - Combat_Ability_0
+  stateHashes: 2b1a167c3293f37a7a682246ede9d2f67d1c88d89defc78ec7d2ea8828a981073270625be67a320837b93501da99a45060c8adc960239e41da7297d8048ce5d2beddec4b4ca9a327f613993692bce2a51db5ba178b85bd6031d4b4f9beddec4b048ce5d2da7297d860239e4160c8adc9da99a4502b1a167c61c540614ca9a327f613993692bce2a531d4b4f98b85bd601db5ba17
+  parameterNames:
+  - LocalMoveDirectionX
+  - LocalMoveDirectionZ
+  - MoveSpeedMultiplier
+  - ActionSpeedMultiplier
+  parameterHashes: 26c6e7aa0aa7e944b698e10fb1bdbeb6
+  groupedStateNamesDict:
+    keys:
+    - Combat_Attack
+    - Combat_Hit
+    - Combat_Block
+    - Combat_Ability
+    count: 4

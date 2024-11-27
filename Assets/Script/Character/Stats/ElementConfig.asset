@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a193daf1edfb44f219b6f30203382d21, type: 3}
+  m_Name: ElementConfig
+  m_EditorClassIdentifier: 
+  elements:
+  - elementName: Fire
+    elementColor: {r: 1, g: 0, b: 0, a: 1}
+  - elementName: Water
+    elementColor: {r: 0, g: 0, b: 1, a: 1}
+  - elementName: Earth
+    elementColor: {r: 1, g: 0.7019608, b: 0, a: 1}
+  - elementName: Air
+    elementColor: {r: 1, g: 1, b: 1, a: 1}
+  combinations:
+  - combinationName: Storm
+    firstElement: Fire
+    secondElement: Water
+    description: 
+  - combinationName: Magma
+    firstElement: Fire
+    secondElement: Earth
+    description: 
+  - combinationName: Lightning
+    firstElement: Fire
+    secondElement: Air
+    description: 
+  - combinationName: Flora
+    firstElement: Water
+    secondElement: Earth
+    description: 
+  - combinationName: Ice
+    firstElement: Water
+    secondElement: Air
+    description: 
+  - combinationName: Dust
+    firstElement: Earth
+    secondElement: Air
+    description: 

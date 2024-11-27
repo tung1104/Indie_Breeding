@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a2a94c2131b8446bd8324a7a3e3b8baa, type: 3}
+  m_Name: ActiveAbility_Mage_1
+  m_EditorClassIdentifier: 
+  cooldown: 1
+  duration: 0
+  animationClip: {fileID: 7400020, guid: 805a6bd6c20526845b0740c865ea2cce, type: 3}
+  animationForceLength: 0
+  animationEvents:
+  - eventName: SpawnParticle
+    normalizedTime: 0.1
+    eventParam1: chaneling
+    eventParam2: LeftHand
+  - eventName: ThrowPresenter
+    normalizedTime: 0.65
+    eventParam1: SphereArea_02
+    eventParam2: TargetUnit
+  animationApplyRootMotion: 0
+  castRange: 10
+  castFOV: 0
