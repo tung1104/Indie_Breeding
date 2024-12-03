@@ -5,21 +5,44 @@ using Unity.Mathematics;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
+public enum DamageType
+{
+    Physical,
+    Critical,
+    Magical,
+    Pure,
+}
+
 [Serializable]
 public struct DamageInfo
 {
     public float damage;
     public float impactForce;
+    public DamageType damageType;
+
     [HideInInspector] public float3 impactDirection;
     [HideInInspector] public float3 impactPoint;
 }
 
 public abstract class Unit : MonoBehaviour
 {
-    [Header("Entity Stats")] public float maxHealth = 100;
-    public AbilityProfile[] abilityProfiles;
     public Bounds bounds;
-    public RuntimeStatsHandler runtimeStats;
+
+    [Header("Default Stats, Abilities")] public byte team;
+
+    public byte level;
+
+    public RuntimeStatsData defaultStatsData = new()
+    {
+        healthPoint = new RuntimeStatsCapacity(100),
+        physicalDamage = 1,
+        attackSpeed = 1,
+        attackRange = 1,
+    };
+
+    [SerializeField] private AbilityProfile[] abilityProfiles;
+
+    [Header("Runtime Variables")] public RuntimeStatsHandler runtimeStats;
     public bool attackTrigger;
     public int castTrigger = -1;
 
@@ -30,8 +53,19 @@ public abstract class Unit : MonoBehaviour
     protected AbilityInstanceStorage abilityInstances;
 
     protected float attackCooldown, stunCooldown, silenceCooldown;
+    protected float deactivateTimer;
 
     protected ParticleFX stunFx, silenceFx;
+
+    public bool CheckIsEnemy(Unit target)
+    {
+        return CheckIsEnemy(target.team);
+    }
+
+    public bool CheckIsEnemy(byte targetTeam)
+    {
+        return team == 0 || targetTeam == 0 || targetTeam != team;
+    }
 
     protected virtual void Awake()
     {
@@ -53,6 +87,7 @@ public abstract class Unit : MonoBehaviour
         healthBar.transform.localPosition = Vector3.up * (bounds.center.y + bounds.extents.y + 1);
 
         runtimeStats = gameObject.AddComponent<RuntimeStatsHandler>();
+        runtimeStats.data = defaultStatsData.Clone(level);
     }
 
     protected virtual void Start()
@@ -63,20 +98,42 @@ public abstract class Unit : MonoBehaviour
 
     protected virtual void OnEnable()
     {
-        runtimeStats.healthPoint = new RuntimeStatsHandler.Capacity(maxHealth);
+        // Reset runtime stats
+        runtimeStats.data.healthPoint.value = runtimeStats.data.healthPoint.maxValue;
+        runtimeStats.isAlive = true;
     }
 
     protected virtual void OnDisable()
     {
-        
+        attackCooldown = stunCooldown = silenceCooldown = 0;
     }
 
     protected virtual void Update()
     {
-        if (!Mathf.Approximately(healthBar.value, runtimeStats.healthPoint.Percent))
+        runtimeStats.ManualUpdate(Time.deltaTime);
+        if (!Mathf.Approximately(healthBar.value, runtimeStats.data.healthPoint.Normalized))
         {
-            healthBar.value = runtimeStats.healthPoint.Percent;
+            healthBar.value = runtimeStats.data.healthPoint.Normalized;
             healthBar.showTrigger = true;
+        }
+
+        if (deactivateTimer > 0)
+        {
+            deactivateTimer -= Time.deltaTime;
+            attackCooldown = stunCooldown = silenceCooldown = 0;
+
+            if (deactivateTimer <= 0)
+            {
+                gameObject.SetActive(false);
+            }
+        }
+        else if (runtimeStats.isAlive)
+        {
+            if (transform.position.y < -1.5f)
+            {
+                Debug.LogWarning($"Object {name} is die coz underwater");
+                runtimeStats.data.healthPoint.value = 0;
+            }
         }
 
         if (attackCooldown > 0)
@@ -98,32 +155,38 @@ public abstract class Unit : MonoBehaviour
         {
             silenceCooldown -= Time.deltaTime;
         }
-
-        if (transform.position.y < -1.5f)
-        {
-            Debug.LogWarning($"Object {name} is die coz underwater");
-            runtimeStats.healthPoint.value = 0;
-        }
-    }
-
-    public void DealDamage(Unit target)
-    {
-        DealDamage(target, new DamageInfo()
-        {
-            damage = 10,
-        });
-    }
-
-    public void DealDamage(Unit target, DamageInfo damageInfo)
-    {
-        target.TakeDamage(this, damageInfo);
     }
 
     public virtual void TakeDamage(Unit author, DamageInfo damageInfo)
     {
-        runtimeStats.healthPoint.value = Mathf.Max(0, runtimeStats.healthPoint.value - damageInfo.damage);
-        DamageNumberHelper.ShowDamageNumber("Damage", damageInfo.damage,
-            healthBar.transform.position + Vector3.down * .5f);
+        // Calculate final damage using the logarithmic formula
+        var statsData = runtimeStats.data;
+
+        // Check if the target has evasion
+        if (!statsData.ComputeHitOrMiss(author ? author.runtimeStats.data.accuracy : 0))
+        {
+            DamageNumberHelper.ShowCustomText("<size=4>EVADE</size>",
+                (Vector3)damageInfo.impactPoint + Vector3.up * .5f);
+            return;
+        }
+
+        // Apply the logarithmic formula for damage calculation
+        var finalDamage = statsData.ComputeFinalDamage(damageInfo.damage, damageInfo.damageType);
+
+        // Apply damage to health point
+        runtimeStats.data.healthPoint.value = Mathf.Max(0, runtimeStats.data.healthPoint.value - finalDamage);
+
+        // Show damage number
+        var dmgPrefabName = damageInfo.damageType switch
+        {
+            DamageType.Physical => "PhysicalDamage",
+            DamageType.Critical => "CriticalDamage",
+            DamageType.Magical => "MagicalDamage",
+            DamageType.Pure => "PureDamage",
+            _ => "PhysicalDamage",
+        };
+        DamageNumberHelper.ShowDamageNumber(dmgPrefabName, finalDamage,
+            healthBar.transform.position + Vector3.up * .5f);
     }
 
     public virtual void TakeStunEffect(float duration, bool stack = false)

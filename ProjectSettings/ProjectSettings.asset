@@ -162,6 +162,7 @@ PlayerSettings:
   androidMaxAspectRatio: 2.1
   applicationIdentifier:
     Android: com.SAVA.Dino
+    Standalone: com.SAVA.Dino
   buildNumber:
     Standalone: 0
     VisionOS: 0

@@ -13,14 +13,12 @@ public class Character : Unit
     public MotionHandler motion;
     public string projectileId;
 
-    public Unit target;
-    public float attackSpeed = 1;
-    public float attackRange = 1;
+    public Unit target, lockedTarget;
 
     public BipedIKHandler bipedIk;
     public Weapon leftHandWeapon, rightHandWeapon;
 
-    protected bool isAttacking, isCasting, isDamaging;
+    private bool isAttacking, isCasting, isDamaging;
 
     [ContextMenu("Remove All Child Colliders")]
     void RemoveAllChildColliders()
@@ -29,12 +27,6 @@ public class Character : Unit
         foreach (var col in colliders)
             if (col.gameObject != gameObject)
                 DestroyImmediate(col);
-    }
-
-    protected override void OnDrawGizmosSelected()
-    {
-        base.OnDrawGizmosSelected();
-        Gizmos.DrawRay(Vector3.zero, Vector3.forward * (movement.capsuleRadius + attackRange));
     }
 
     private void Reset()
@@ -52,6 +44,13 @@ public class Character : Unit
         perception.capsuleHeight = movement.capsuleHeight;
     }
 
+    protected override void OnDrawGizmosSelected()
+    {
+        base.OnDrawGizmosSelected();
+
+        Gizmos.DrawRay(Vector3.zero, Vector3.forward * (movement.capsuleRadius + defaultStatsData.attackRange));
+    }
+
     protected override void Awake()
     {
         base.Awake();
@@ -65,6 +64,17 @@ public class Character : Unit
         if (!motion.animator.TryGetComponent(out bipedIk))
             bipedIk = motion.animator.gameObject.AddComponent<BipedIKHandler>();
 
+        motion.SubscribeOnEmit("Combat_Attack_0", OnAttackEmitEvent);
+        motion.SubscribeOnEnd("Combat_Attack_0", ClearLockedTarget);
+        motion.SubscribeOnEnd("Combat_Ability_0", ClearLockedTarget);
+        motion.SubscribeOnEnd("Combat_Ability_1", ClearLockedTarget);
+        motion.SubscribeOnEnd("Combat_Ability_2", ClearLockedTarget);
+
+        perception.SubscribeTargetChanged((Unit t) => target = t);
+
+        movement.BeforeCharacterUpdateCb += BeforeMovementUpdate;
+        movement.AfterCharacterUpdateCb += AfterMovementUpdate;
+
         if (bipedIk.leftHand && bipedIk.rightHand)
         {
             leftHandWeapon = bipedIk.leftHand.GetComponentInChildren<Weapon>();
@@ -73,20 +83,26 @@ public class Character : Unit
             StackWeaponStats(leftHandWeapon);
             StackWeaponStats(rightHandWeapon);
         }
+    }
 
-        motion.SubscribeOnEmit("Combat_Attack_0", OnAttackEmittedEvent);
-
-        perception.SubscribeTargetChanged((Unit t) => target = t);
-
-        movement.BeforeCharacterUpdateCb += BeforeMovementUpdate;
-        movement.AfterCharacterUpdateCb += AfterMovementUpdate;
+    void ClearLockedTarget()
+    {
+        lockedTarget = null;
     }
 
     void StackWeaponStats(Weapon weapon)
     {
         if (!weapon) return;
-        attackSpeed += weapon.attackSpeed;
-        attackRange += weapon.attackRange;
+        runtimeStats.data.attackSpeed += weapon.attackSpeed;
+        runtimeStats.data.attackRange += weapon.attackRange;
+        Debug.Log($"Stacked weapon stats from {weapon.name} to {name}");
+    }
+
+    protected override void OnEnable()
+    {
+        base.OnEnable();
+
+        perception.team = team;
     }
 
     protected override void OnDisable()
@@ -102,7 +118,10 @@ public class Character : Unit
     {
         base.Update();
 
-        if (!runtimeStats.isAlive || ((isCasting || isAttacking) && motion.playingStateSetting.applyRootMotion))
+        if (!gameObject.activeSelf) return;
+
+        if (!runtimeStats.isAlive ||
+            ((isCasting || isAttacking || isDamaging) && motion.PlayingStateSetting.applyRootMotion))
         {
             movement.ForceSetDeltaPose(motion.animatorDeltaPose);
             movement.input.moveDirectionYaw = movement.input.lookDirectionYaw = transform.eulerAngles.y;
@@ -110,20 +129,21 @@ public class Character : Unit
 
         if (!runtimeStats.isAlive)
         {
+            if (deactivateTimer > 0) return;
             if (!motion.IsPlaying("Die"))
             {
                 if (!motion.Play("Die", loopTime: -2))
                 {
-                    gameObject.SetActive(false);
+                    deactivateTimer = .1f;
                     return;
                 }
 
                 perception.enabled = false;
-                movement.SetCapsuleIsTrigger(true);
+                movement.SetCapsuleTrigger(true);
             }
-            else if (motion.playingTimeNormalized > 1.5f)
+            else if (motion.PlayingTimeNormalized > 1.5f)
             {
-                gameObject.SetActive(false);
+                deactivateTimer = 1f;
             }
 
             return;
@@ -132,39 +152,51 @@ public class Character : Unit
         if (movement.isKinematic)
             UpdateAIBehaviour(Time.deltaTime);
         else
-        {
             perception.ForceSetVelocity(movement.state.velocity);
-        }
 
         // Update motion play requests for combat
         isAttacking = motion.IsPlaying("Combat_Attack", true);
         isDamaging = motion.IsPlaying("Combat_Hit", true);
         isCasting = motion.IsPlaying("Combat_Ability", true);
-        if (isAttacking || isDamaging || isCasting || stunCooldown > 0) return;
+
+        if (isAttacking || isDamaging || isCasting || stunCooldown > 0)
+        {
+            attackTrigger = false;
+            castTrigger = -1;
+            return;
+        }
 
         for (var i = 0; i < abilityInstances.activeInstances.Count; i++)
         {
             var abInstance = abilityInstances.activeInstances[i];
-            if (!abInstance.IsReady || silenceCooldown > 0) continue;
+            if (!abInstance.IsReady || silenceCooldown > 0 || movement.input.moveSpeedLevel > -1) continue;
             motion.Play(abInstance.stateName, forceLength: abInstance.active.animationForceLength);
             isCasting = true;
+            lockedTarget = target;
             return;
         }
 
-        if (!attackTrigger || attackCooldown > 0) return;
+        if (!attackTrigger) return;
         attackTrigger = false;
-        motion.Play("Combat_Attack_0", forceLength: 1.0f / attackSpeed, layerIndex: 0);
+        if (attackCooldown > 0) return;
+        motion.Play("Combat_Attack_0", forceLength: 1.0f / runtimeStats.data.attackSpeed, layerIndex: 0);
         isAttacking = true;
+        if (CheckTargetIsInRange())
+            lockedTarget = target;
     }
 
     public override void TakeDamage(Unit author, DamageInfo damageInfo)
     {
         base.TakeDamage(author, damageInfo);
 
-        //motion.Play("Combat_Hit_0", normalizedTimeOffset: Random.value * .25f, forceLength: 0.25f);
+        // motion.Play("Combat_Hit_0", normalizedTimeOffset: Random.value * .25f, forceLength: 0.25f);
+        // motion.Play("Combat_Hit_0");
         // isDamaging = true;
         if (damageInfo.impactForce > 0)
             movement.AddImpulseForce(damageInfo.impactDirection * damageInfo.impactForce);
+
+        if (!target && author is Character character)
+            perception.SetPriorityTarget(character.perception);
     }
 
     public override void TakeStunEffect(float duration, bool stack = false)
@@ -174,8 +206,23 @@ public class Character : Unit
         if (bipedIk.head) stunFx.transform.position = bipedIk.head.position + Vector3.up * 0.5f;
     }
 
-    void OnAttackEmittedEvent(MotionStateSettingEvent e)
+    void OnAttackEmitEvent(MotionStateSettingEvent e)
     {
+        if (!lockedTarget) return;
+        attackCooldown =
+            motion.PlayingTimeNormalized * (1.0f / runtimeStats.data.attackSpeed); // Set cooldown based on attack speed
+        var isCritical = runtimeStats.data.criticalChance > 0 && Random.value < runtimeStats.data.criticalChance;
+        // if (isCritical)
+        //     Debug.LogError(
+        //         $"{name} emit critical hit! {runtimeStats.data.criticalChance} : {runtimeStats.data.criticalChance > 0}");
+        var dmgInfo = new DamageInfo
+        {
+            damage = runtimeStats.data.physicalDamage * (isCritical ? runtimeStats.data.criticalDamageMultiplier : 1),
+            damageType = isCritical ? DamageType.Critical : DamageType.Physical,
+            impactDirection = transform.forward,
+            impactForce = 0,
+            impactPoint = transform.position + transform.forward * runtimeStats.data.attackRange
+        };
         switch (e.eventName)
         {
             case "LHand_Shoot":
@@ -197,10 +244,12 @@ public class Character : Unit
                 rightHandWeapon.gameObject.SetActive(true);
                 break;
             case "DealDamage":
-                if (CheckTargetIsInRange(-1, -1))
-                    DealDamage(target);
+                if (lockedTarget)
+                    lockedTarget.TakeDamage(this, dmgInfo);
                 break;
         }
+
+        lockedTarget = null;
     }
 
     void FireProjectile(string useProjectileId, Vector3 position)
@@ -208,14 +257,14 @@ public class Character : Unit
         var direction = transform.forward;
         if (CheckTargetIsInRange())
             direction = target.transform.TransformPoint(target.bounds.center) - position;
-        ProjectileManager.Instance.SpawnProjectile(useProjectileId, position, direction);
+        ProjectileManager.Instance.SpawnProjectile(useProjectileId, position, direction, this);
     }
 
     public bool CheckTargetIsInRange(float range = 0, float fov = 0)
     {
         if (!target) return false;
 
-        if (range == 0) range = attackRange + movement.capsuleRadius;
+        if (range == 0) range = runtimeStats.data.attackRange + movement.capsuleRadius;
         if (fov == 0) fov = 15;
 
         var dirToTarget = target.transform.position - transform.position;
@@ -254,8 +303,9 @@ public class Character : Unit
 
         if (movement.input.moveSpeedLevel > -1)
         {
+            if (!runtimeStats.isAlive || isDamaging || isCasting || stunCooldown > 0)
+                movement.input.moveSpeedLevel = -1;
             if (isAttacking) motion.ClearAllPlayRequests();
-            if (isDamaging || isCasting || stunCooldown > 0) movement.input.moveSpeedLevel = -1;
         }
 
         if (target)
@@ -274,12 +324,33 @@ public class Character : Unit
     }
 
     float wanderingCountdown;
+    float anchorLength = 5;
+    public float anchorMaxLength = 10;
+    public Transform anchor;
+    public Character leader;
 
     void UpdateAIBehaviour(float deltaTime)
     {
         // Update perception path destination
         var desiredMoveSpeedLevel = GetMoveSpeedLevelOf(perception.DecidedMoveDelta.magnitude);
-        if (target)
+
+        var isOverAnchor = anchor && (transform.position - anchor.position).sqrMagnitude >
+            anchorLength * anchorLength;
+
+        if (isOverAnchor && !leader && target) isOverAnchor = false;
+
+        if (isOverAnchor)
+        {
+            if (perception.RelativeDistanceToTarget(anchor.position) > anchorLength)
+            {
+                perception.pathDestination = anchor.position;
+                perception.maxMoveSpeed = movement.GetMoveSpeed(1);
+            }
+
+            if (anchorLength > 2)
+                anchorLength = Mathf.Max(anchorLength - deltaTime, 2);
+        }
+        else if (target)
         {
             if (CheckTargetIsInRange(0, -1) || isAttacking)
             {
@@ -290,9 +361,13 @@ public class Character : Unit
             }
             else
             {
-                perception.pathDestination = target.transform.position;
+                perception.pathDestination = target.transform.position +
+                                             (target.transform.position - transform.position).normalized;
                 perception.maxMoveSpeed = movement.GetMoveSpeed(1);
             }
+
+            if (anchor && anchorLength < anchorMaxLength)
+                anchorLength = anchorMaxLength;
         }
         else
         {
@@ -304,9 +379,15 @@ public class Character : Unit
             else
             {
                 wanderingCountdown = Random.Range(4.0f, 8.0f);
-                perception.pathDestination = perception.GetRandomPoint();
-                perception.maxMoveSpeed = movement.GetMoveSpeed(0);
+                perception.maxMoveSpeed = movement.GetMoveSpeed(Random.Range(0, 2));
+                perception.pathDestination = anchor
+                    ? perception.GetRandomPoint(anchor.position + (anchor.position - transform.position).normalized,
+                        anchorLength)
+                    : perception.GetRandomPoint();
             }
+
+            if (anchor && anchorLength < anchorMaxLength)
+                anchorLength += deltaTime;
         }
 
         // Update movement input based on perception

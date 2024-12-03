@@ -30,7 +30,7 @@ public class AbilityManager : StandardSingleton<AbilityManager>
     {
         var ownerChar = instance.ownerCharacter;
         Transform originTarget = null;
-        var destinationTarget = ownerChar.target ? ownerChar.target : null;
+        var destinationTarget = ownerChar.lockedTarget ? ownerChar.lockedTarget : null;
         switch (e.eventParam2)
         {
             case "LeftHand":
@@ -147,16 +147,16 @@ public class AbilityManager : StandardSingleton<AbilityManager>
         }
     }
 
-    private void Update()
+    private void FixedUpdate()
     {
         for (var i = 0; i < abilityInstancesList.Count; i++)
         {
             var abiInstance = abilityInstancesList[i];
-            if (!abiInstance.owner.gameObject.activeSelf) continue;
+            if (!abiInstance.owner || !abiInstance.owner.gameObject.activeSelf) continue;
 
             if (abiInstance.cooldown > 0)
             {
-                abiInstance.cooldown -= Time.deltaTime;
+                abiInstance.cooldown -= Time.fixedDeltaTime;
             }
         }
     }

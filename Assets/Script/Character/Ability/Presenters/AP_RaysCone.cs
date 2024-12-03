@@ -92,16 +92,18 @@ public class AP_RaysCone : AbilityPresenter
                 1 << abInstance.owner.gameObject.layer);
             for (int j = 0; j < hitCount; j++)
             {
-                if (hits[j].collider.TryGetComponent(out Unit unit))
+                var col = hits[j].collider;
+                if (col.TryGetComponent(out Unit unit) && CheckTargetIsValid(unit))
                 {
                     if (!tmpUnitsList.Contains(unit))
                     {
                         tmpUnitsList.Add(unit);
-                        abInstance.owner.DealDamage(unit, new DamageInfo()
+                        unit.TakeDamage(abInstance.owner, new DamageInfo()
                         {
                             damage = damage,
+                            damageType = damageType,
                             impactForce = impactForce,
-                            impactDirection = transform.forward,
+                            impactDirection = rayDirection,
                             impactPoint = hits[j].point
                         });
                         foreach (var buff in buffs)

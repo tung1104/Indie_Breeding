@@ -25,11 +25,12 @@ public class AP_Beam : AbilityPresenter
         {
             distance = hit.distance;
             //Debug.Log($"Hit {hit.collider.name}");
-            if (hit.collider.TryGetComponent(out Unit unit))
+            if (hit.collider.TryGetComponent(out Unit unit) && CheckTargetIsValid(unit))
             {
-                abInstance.owner.DealDamage(unit, new DamageInfo()
+                unit.TakeDamage(abInstance.owner, new DamageInfo()
                 {
                     damage = damage,
+                    damageType = damageType,
                     impactForce = impactForce,
                     impactDirection = transform.forward,
                     impactPoint = hit.point

@@ -8,9 +8,10 @@ using UnityEngine;
 public class PerceptionSystem : StandardSingleton<PerceptionSystem>
 {
     [SerializeField] AstarPath astarPath;
-    [Tooltip("How many perception handlers should be updated per second")]
-    [Range(1, 60)]
-    [SerializeField] int balancedUpdateRate = 60;
+
+    [Tooltip("How many perception handlers should be updated per second")] [Range(1, 60)] [SerializeField]
+    int balancedUpdateRate = 60;
+
     public LayerMask obstacleLayerMask = 1 << 0;
     public int characterLayer = 9;
 
@@ -20,18 +21,22 @@ public class PerceptionSystem : StandardSingleton<PerceptionSystem>
 
     RecastGraph recastGraph;
 
+    public bool IsInitialized { get; private set; }
+
     protected override void OnInitSingleton()
     {
         perceptionHandlers = new List<PerceptionHandler>();
+    }
 
+    public IEnumerator Initialize()
+    {
         // Creating graph during runtime
-
         // This holds all graph data
         var data = astarPath.data;
         // This creates a Grid Graph
         var rg = (RecastGraph)data.AddGraph(typeof(RecastGraph));
         // Setup a grid graph with some values
-        rg.characterRadius = 0.2f;
+        rg.characterRadius = 0.5f;
         rg.walkableHeight = 2.0f;
         rg.walkableClimb = 0.5f;
         rg.cellSize = .1f;
@@ -42,7 +47,14 @@ public class PerceptionSystem : StandardSingleton<PerceptionSystem>
         rg.SnapBoundsToScene();
         rg.forcedBoundsSize = rg.bounds.size * 1.1f;
         // Scans all graphs
-        astarPath.Scan();
+        foreach (var progress in astarPath.ScanAsync())
+        {
+            Debug.Log("Scanning... " + progress.ToString());
+            yield return null;
+        }
+
+        yield return new WaitForEndOfFrame();
+        IsInitialized = true;
     }
 
     public void Register(PerceptionHandler perceptionHandler)
@@ -72,6 +84,8 @@ public class PerceptionSystem : StandardSingleton<PerceptionSystem>
 
     void Update()
     {
+        if (!IsInitialized) return;
+
         // Add to the accumulator
         accumulationTime += Time.deltaTime;
         float fixedDeltaTime = 1.0f / balancedUpdateRate * 2.0f;

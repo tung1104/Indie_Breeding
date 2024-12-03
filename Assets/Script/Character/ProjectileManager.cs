@@ -8,6 +8,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Jobs;
 using UnityEngine.Serialization;
+using Random = UnityEngine.Random;
 
 public class ProjectileManager : StandardSingleton<ProjectileManager>
 {
@@ -44,20 +45,24 @@ public class ProjectileManager : StandardSingleton<ProjectileManager>
         public int throughTargets;
         public int impactNameId;
         public bool isFinished;
+        public byte team;
         public DamageInfo damageInfo;
+        public int shooterId;
     }
 
-    private Action<Component, Component, DamageInfo> onHit;
+    private Action<byte, Component, Component, DamageInfo> onHit;
     Type priorityType;
 
-    public void SubscribeOnHit<T>(Action<T, T, DamageInfo> callback) where T : Component
+    private ObjectPoolManager unitPool;
+
+    public void SubscribeOnHit<T>(Action<byte, T, T, DamageInfo> callback) where T : Component
     {
         priorityType = typeof(T);
-        onHit = (sender, receiver, info) =>
+        onHit = (team, shooter, receiver, info) =>
         {
-            if (sender is T senderT && receiver is T receiverT)
+            if (receiver is T receiverT)
             {
-                callback.Invoke(senderT, receiverT, info);
+                callback.Invoke(team, shooter as T, receiverT, info);
             }
         };
     }
@@ -69,9 +74,11 @@ public class ProjectileManager : StandardSingleton<ProjectileManager>
         raycastCommands = new NativeList<RaycastCommand>(bufferSize, Allocator.Persistent);
         raycastHits = new NativeList<RaycastHit>(bufferSize, Allocator.Persistent);
         projectileTransforms = new TransformAccessArray(bufferSize);
+        
+        ObjectPoolManager.Instances.TryGetValue("UnitPool", out unitPool);
     }
 
-    public void SpawnProjectile(string id, Vector3 position, Vector3 direction)
+    public void SpawnProjectile(string id, Vector3 position, Vector3 direction, Unit shooter)
     {
         ProjectileBaseData data = Array.Find(projectileDatas, x => x.id == id);
         if (string.IsNullOrEmpty(data.id))
@@ -85,6 +92,15 @@ public class ProjectileManager : StandardSingleton<ProjectileManager>
 
         fxPool.TrySpawnInstance(data.projectileName, position, rotation, out ParticleFX projectile);
 
+        var statsData = shooter.runtimeStats.data;
+        var isCritical = statsData.criticalChance > 0 && Random.value < statsData.criticalChance;
+        var dmgInfo = new DamageInfo
+        {
+            damage = statsData.physicalDamage * (isCritical ? statsData.criticalDamageMultiplier : 1),
+            damageType = isCritical ? DamageType.Critical : DamageType.Physical,
+            impactForce = 0,
+        };
+
         var projectileInstance = new ProjectileInstance
         {
             startPosition = position,
@@ -95,7 +111,9 @@ public class ProjectileManager : StandardSingleton<ProjectileManager>
             bounces = data.bounces,
             throughTargets = data.throughTargets,
             impactNameId = fxPool.GetPrefabId(data.impactName),
-            damageInfo = data.damageInfo // Assign damageInfo from projectile data
+            team = shooter.team,
+            shooterId = -1,//shooter.GetComponent<PoolObject>().index,
+            damageInfo = dmgInfo // Assign damageInfo from projectile data
         };
 
         projectiles.Add(projectileInstance);
@@ -175,7 +193,9 @@ public class ProjectileManager : StandardSingleton<ProjectileManager>
             // Invoke the hit event
             var dmgInfo = projectile.damageInfo;
             dmgInfo.impactDirection = projectile.direction;
-            onHit?.Invoke(receiver, receiver, dmgInfo);
+            dmgInfo.impactPoint = hit.point;
+            var shooter = unitPool.GetInstanceByIndex(projectile.shooterId)?.GetComponent<Unit>();
+            onHit?.Invoke(projectile.team, shooter, receiver, dmgInfo);
             fxPool.TrySpawnInstance(projectile.impactNameId, hit.point, Quaternion.LookRotation(projectile.direction),
                 out var impactFX);
 

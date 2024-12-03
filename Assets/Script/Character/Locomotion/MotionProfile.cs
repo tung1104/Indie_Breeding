@@ -33,9 +33,13 @@ public class MotionProfile : ScriptableObject
 
     AnimatorStateData animatorStateData;
 
-    //public IndexedDictionary<string, AnimationClip> clipsDictionary;
-    public IndexedDictionary<string, MotionStateSetting> settingsDictionary;
+    IndexedDictionary<string, MotionStateSetting> settingsDictionary;
 
+    public bool TryGetStateSetting(string stateName, out MotionStateSetting setting)
+    {
+        return settingsDictionary.TryGetValue(stateName, out setting);
+    }
+    
     public bool TryGetGroupedStateNames(string stateName, out List<string> groupedStateNames)
     {
         return animatorStateData.groupedStateNamesDict.TryGetValue(stateName, out groupedStateNames);
@@ -64,13 +68,6 @@ public class MotionProfile : ScriptableObject
         if (animatorStateData != null) return;
         animatorStateData = Resources.Load<AnimatorStateData>("AnimatorStateData");
         //Debug.Log($"Init Motion Profile {name}");
-        
-        // clipsDictionary = new IndexedDictionary<string, AnimationClip>();
-        // foreach (var clip in clips.GetType().GetFields())
-        // {
-        //     var clipName = clip.Name;
-        //     clipsDictionary.Add(clipName, clips.GetType().GetField(clipName).GetValue(clips) as AnimationClip);
-        // }
 
         settingsDictionary = new IndexedDictionary<string, MotionStateSetting>();
         foreach (var setting in settings)
@@ -145,8 +142,8 @@ public struct MotionStateClips
     //[Header("Walk Turn")]
     public AnimationClip Walk_Fwd_TurnLeft_90;
     public AnimationClip Walk_Fwd_TurnRight_90;
-    public AnimationClip Walk_Bwd_TurnLeft_90;
-    public AnimationClip Walk_Bwd_TurnRight_90;
+    // public AnimationClip Walk_Bwd_TurnLeft_90;
+    // public AnimationClip Walk_Bwd_TurnRight_90;
     
     [Header("Run Straight")]
     public AnimationClip Run_Forward;

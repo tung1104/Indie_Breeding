@@ -6,12 +6,24 @@ using UnityEngine.Serialization;
 
 public abstract class AbilityPresenter : MonoBehaviour
 {
+    public enum RotationType
+    {
+        None,
+        DependOriginRotation,
+        TowardsOwnerForward,
+        TowardsDestination
+    }
+
     public float duration = 1;
     public float fadeOutDuration = 0f;
     public float damage = 10;
+    public DamageType damageType = DamageType.Magical;
     public float impactForce = 1;
     public float stunDuration = 0f;
     public RuntimeStatsBuff[] buffs;
+    public bool targetIncludeEnemies = true;
+    public bool targetIncludeAllies = false;
+    public bool targetIncludeSelf = false;
 
     public AbilityInstance abInstance;
     public ActiveAbilityInstance abActiveInstance;
@@ -20,9 +32,7 @@ public abstract class AbilityPresenter : MonoBehaviour
     [FormerlySerializedAs("followParentPosition")]
     public bool followOriginPosition;
 
-    public bool followOriginRotation;
-
-    public bool rotateTowardsDestination;
+    public RotationType rotationType;
 
     public float presentUpdateRate = 10;
 
@@ -40,6 +50,15 @@ public abstract class AbilityPresenter : MonoBehaviour
     protected abstract void Presenting(float deltaTime);
     protected abstract void Disappearance();
 
+    protected bool CheckTargetIsValid(Unit target)
+    {
+        if (!target || !target.runtimeStats.isAlive) return false;
+        if(!targetIncludeSelf && target == abInstance.owner) return false;
+        var targetIsEnemy = target.CheckIsEnemy(abInstance.owner);
+        if (!targetIncludeEnemies && targetIsEnemy) return false;
+        return targetIncludeAllies || targetIsEnemy;
+    }
+
     protected virtual void Awake()
     {
         particles = GetComponentsInChildren<ParticleSystem>();
@@ -47,6 +66,11 @@ public abstract class AbilityPresenter : MonoBehaviour
         {
             var main = particle.main;
             main.playOnAwake = false;
+        }
+
+        for(var i = 0; i < buffs.Length; i++)
+        {
+            buffs[i].Init();
         }
     }
 
@@ -80,6 +104,7 @@ public abstract class AbilityPresenter : MonoBehaviour
     {
         if (fadeOutDuration > 0)
         {
+            if (timer != 0) return;
             timer = fadeOutDuration;
             foreach (var particle in particles)
             {
@@ -96,6 +121,19 @@ public abstract class AbilityPresenter : MonoBehaviour
     protected virtual void Update()
     {
         if (abInstance == null) return;
+
+        // Auto recall if owner die
+        if (!abInstance.owner || !abInstance.owner.runtimeStats.isAlive)
+        {
+            if (duration > 0)
+            {
+                abInstance.owner = null;
+            }
+            else
+            {
+                Recall();
+            }
+        }
 
         // Add to the accumulator
         accumulationTime += Time.deltaTime;
@@ -134,15 +172,18 @@ public abstract class AbilityPresenter : MonoBehaviour
         if (abInstance == null) return;
         if (!isPresenting) return;
 
+        if (abInstance.owner && rotationType == RotationType.TowardsOwnerForward)
+            transform.rotation = Quaternion.LookRotation(abInstance.owner.transform.forward);
+
         if (originParent)
         {
             if (followOriginPosition)
                 transform.position = originParent.position;
-            if (followOriginRotation)
+            if (rotationType == RotationType.DependOriginRotation)
                 transform.rotation = originParent.rotation;
         }
 
-        if (destinationTarget && rotateTowardsDestination)
+        if (destinationTarget && rotationType == RotationType.TowardsDestination)
         {
             transform.LookAt(destinationTarget.transform.position + destinationTarget.bounds.center);
         }

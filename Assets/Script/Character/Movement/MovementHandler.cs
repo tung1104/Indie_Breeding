@@ -48,8 +48,8 @@ public class MovementHandler : MonoBehaviour, ICharacterController
 
     private List<Vector3> impulseForces;
 
-    public Action<float> AfterCharacterUpdateCb;
-    public Action<float> BeforeCharacterUpdateCb;
+    public Action<float> AfterCharacterUpdateCb { get; set; }
+    public Action<float> BeforeCharacterUpdateCb { get; set; }
 
     private void Awake()
     {
@@ -64,6 +64,9 @@ public class MovementHandler : MonoBehaviour, ICharacterController
         motor.LedgeAndDenivelationHandling = false;
         motor.InteractiveRigidbodyHandling = true;
         motor.CheckMovementInitialOverlaps = false;
+        motor.CollidableLayers =
+            MovementSystem.Instance.obstacleLayerMask; // | (1 << MovementSystem.Instance.characterLayer);
+        motor.StableGroundLayers = MovementSystem.Instance.obstacleLayerMask;
         impulseForces = new List<Vector3>();
     }
 
@@ -122,7 +125,7 @@ public class MovementHandler : MonoBehaviour, ICharacterController
         state.groundedNormal = hitInfo.normal;
     }
 
-    public void SetCapsuleIsTrigger(bool isTrigger)
+    public void SetCapsuleTrigger(bool isTrigger)
     {
         motor.Capsule.isTrigger = isTrigger;
     }
@@ -261,7 +264,7 @@ public class MovementHandler : MonoBehaviour, ICharacterController
 
     public bool IsColliderValidForCollisions(Collider coll)
     {
-        return coll.gameObject.layer != gameObject.layer || !isKinematic;
+        return true;
     }
 
     public void OnGroundHit(Collider hitCollider, Vector3 hitNormal, Vector3 hitPoint,

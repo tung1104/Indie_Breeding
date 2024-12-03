@@ -9,6 +9,7 @@ public class MotionHandler : MonoBehaviour
 {
     public MotionProfile profile;
     public Animator animator;
+    public MotionAnimatorHelper animatorHelper;
 
     [HideInInspector] public float moveDirection;
     [HideInInspector] public float lookDirection;
@@ -19,9 +20,6 @@ public class MotionHandler : MonoBehaviour
     public Pose animatorDeltaPose = Pose.identity;
 
     Quaternion smoothLocalRotation;
-
-    AnimatorOverrideController overrideController;
-    AnimationClipOverrides clipOverrides;
 
     private float smoothSteeringAngleBias;
 
@@ -38,24 +36,13 @@ public class MotionHandler : MonoBehaviour
     {
         if (animator)
         {
+            animatorHelper = animator.gameObject.AddComponent<MotionAnimatorHelper>();
             if (profile)
             {
-                overrideController = profile.GetNewOverrideController();
-                animator.runtimeAnimatorController = overrideController;
-                clipOverrides = new AnimationClipOverrides(overrideController.overridesCount);
-                overrideController.GetOverrides(clipOverrides);
+                animatorHelper.SetAnimatorOverrideController(profile.GetNewOverrideController());
             }
             else
-            {
                 Debug.LogWarning($"MotionHandler: {name} has no MotionProfile assigned");
-                return;
-            }
-
-            animator.applyRootMotion = false;
-            animator.cullingMode = AnimatorCullingMode.CullCompletely;
-            animator.keepAnimatorStateOnDisable = true;
-            animator.fireEvents = false;
-            animator.AddComponent<AnimatorTracker>();
         }
         else
             Debug.LogWarning($"MotionHandler: {name} has no Animator assigned");
@@ -63,7 +50,7 @@ public class MotionHandler : MonoBehaviour
 
     private void Update()
     {
-        if (animator && profile)
+        if (animatorHelper && profile)
         {
             UpdateBaseMotion(Time.deltaTime);
             UpdateAdvancedMotion(Time.deltaTime);
@@ -116,27 +103,27 @@ public class MotionHandler : MonoBehaviour
             }
 
             if (isSteerable)
-                animator.SetFloat(profile.GetParamNameHash("SteeringAngleBias"), smoothSteeringAngleBias);
+                animatorHelper.SetFloat("SteeringAngleBias", smoothSteeringAngleBias);
 
             var moveSpeedMultiplier = profile.GetMoveSpeedMultiplier(moveSpeedLevel) *
                                       Mathf.Max(moveVelocityMagnitude, profile.minMoveVelocityMagnitude);
             if (profile.correctSpeedWithScale)
-                moveSpeedMultiplier /= animator.transform.localScale.x;
-            animator.SetFloat(profile.GetParamNameHash("MoveSpeedMultiplier"), moveSpeedMultiplier);
+                moveSpeedMultiplier /= animatorHelper.transform.localScale.x;
+            animatorHelper.SetFloat("MoveSpeedMultiplier", moveSpeedMultiplier);
 
             if (isMovingDiagonal)
             {
                 var localRotation = Quaternion.Inverse(transform.rotation) * Quaternion.Euler(0, moveDirection, 0);
                 smoothLocalRotation = Quaternion.Slerp(smoothLocalRotation, localRotation, deltaTime * 10);
                 var localMoveDirection = smoothLocalRotation * Vector3.forward * (moveSpeedLevel + 1);
-                animator.SetFloat(profile.GetParamNameHash("LocalMoveDirectionX"), localMoveDirection.x);
-                animator.SetFloat(profile.GetParamNameHash("LocalMoveDirectionZ"), localMoveDirection.z);
+                animatorHelper.SetFloat("LocalMoveDirectionX", localMoveDirection.x);
+                animatorHelper.SetFloat("LocalMoveDirectionZ", localMoveDirection.z);
             }
         }
 
         var stateNameHash = profile.GetStateNameHash(stateName);
-        var stateInfo = animator.GetCurrentAnimatorStateInfo(0);
-        if (stateInfo.shortNameHash != stateNameHash && !animator.IsInTransition(0))
+        var stateInfo = animatorHelper.animator.GetCurrentAnimatorStateInfo(0);
+        if (stateInfo.shortNameHash != stateNameHash && !animatorHelper.animator.IsInTransition(0))
         {
             var transitionDuration = 0.15f;
             var normalizedTimeOffset = 0f;
@@ -154,8 +141,8 @@ public class MotionHandler : MonoBehaviour
                         break;
                 }
 
-            var timeOffset = normalizedTimeOffset * animator.GetCurrentAnimatorStateInfo(0).length;
-            animator.CrossFadeInFixedTime(stateNameHash, transitionDuration, 0, timeOffset);
+            var timeOffset = normalizedTimeOffset * stateInfo.length;
+            animatorHelper.CrossFadeInFixedTime(stateNameHash, transitionDuration, 0, timeOffset);
             //animator.Play(stateNameHash, 0, timeOffset);
         }
     }
@@ -189,9 +176,11 @@ public class MotionHandler : MonoBehaviour
     int playingEmitCount;
     int playingLoopRemain;
     PlayCallback playingCallback;
-    public MotionStateSetting playingStateSetting;
-    public float playingTimeNormalized;
+    MotionStateSetting playingStateSetting;
+    float playingTimeNormalized;
     readonly Dictionary<string, MotionStateSetting> overrideStateSettings = new();
+    public float PlayingTimeNormalized => playingTimeNormalized;
+    public MotionStateSetting PlayingStateSetting => playingStateSetting;
 
     public void SubscribeOnEmit(string state, Action<MotionStateSettingEvent> callback)
     {
@@ -214,16 +203,26 @@ public class MotionHandler : MonoBehaviour
         playCallback[state] = playCb;
     }
 
+    public void SubscribeOnBegin(string state, Action callback)
+    {
+        if (!playCallback.TryGetValue(state, out var playCb)) playCb = new PlayCallback();
+        playCb.begin += callback;
+        playCallback[state] = playCb;
+    }
+
     public void SetOverrideClip(string state, AnimationClip clip, MotionStateSetting setting)
     {
-        clipOverrides[state] = clip;
-        overrideController.ApplyOverrides(clipOverrides);
+        animatorHelper.clipOverrides[state] = clip;
+        animatorHelper.overrideController.ApplyOverrides(animatorHelper.clipOverrides);
         if (setting.stateName.Equals(state))
             overrideStateSettings.Add(setting.stateName, setting);
     }
 
     public void ClearAllPlayRequests()
     {
+        for (var i = 0; i < playRequests.Count; i++)
+            if (playCallback.TryGetValue(playRequests[i].state, out playingCallback))
+                playingCallback.end?.Invoke();
         playRequests.Clear();
         playingState = default;
     }
@@ -232,7 +231,7 @@ public class MotionHandler : MonoBehaviour
         float forceLength = 0, int loopTime = 0, int layerIndex = 0)
     {
         ClearAllPlayRequests();
-        var clip = clipOverrides[state];
+        var clip = animatorHelper.clipOverrides[state];
         if (!clip)
         {
             Debug.LogWarning($"Game object {name} failed to play {state} because not found!");
@@ -260,19 +259,15 @@ public class MotionHandler : MonoBehaviour
         return playRequests.Exists(r => r.state == state);
     }
 
-    public bool IsPlayingAny()
-    {
-        return playRequests.Count > 0;
-    }
-
     void UpdateAdvancedMotion(float deltaTime)
     {
         // Implement advanced motion control here
         var hasPlayRequest = playRequests.Count > 0;
-        var layer1Weight = animator.GetLayerWeight(1);
+        var layer1Weight = animatorHelper.animator.GetLayerWeight(1);
         float targetLayer1Weight = hasPlayRequest && playRequests[0].layerIndex > 0 ? 1 : 0;
         if (!Mathf.Approximately(layer1Weight, targetLayer1Weight))
-            animator.SetLayerWeight(1, Mathf.MoveTowards(layer1Weight, targetLayer1Weight, deltaTime * 15));
+            animatorHelper.animator.SetLayerWeight(1,
+                Mathf.MoveTowards(layer1Weight, targetLayer1Weight, deltaTime * 15));
         if (!hasPlayRequest) return;
 
         var playRequest = playRequests[0];
@@ -281,21 +276,23 @@ public class MotionHandler : MonoBehaviour
             // Play the new state
             playingState = playRequest.state;
             playingTime = playRequest.normalizedTimeOffset > 0
-                ? playRequest.normalizedTimeOffset * playRequest.clip.length
+                ? playRequest.normalizedTimeOffset *
+                  (playRequest.forceLength > 0 ? playRequest.forceLength : playRequest.clip.length)
                 : 0;
             playingSpeed = playRequest.forceLength > 0 ? playRequest.clip.length / playRequest.forceLength : 1;
             playingEmitCount = 0;
             playingLoopRemain = playRequest.loopTime;
-            if (!profile.settingsDictionary.TryGetValue(playingState, out playingStateSetting))
+            if (!profile.TryGetStateSetting(playingState, out playingStateSetting))
                 overrideStateSettings.TryGetValue(playingState, out playingStateSetting);
             playCallback.TryGetValue(playingState, out playingCallback);
 
-            animator.CrossFadeInFixedTime(profile.GetStateNameHash(playingState), playRequest.transitionDuration,
+            animatorHelper.CrossFadeInFixedTime(profile.GetStateNameHash(playingState), playRequest.transitionDuration,
                 playRequest.layerIndex, playingTime);
-            animator.Update(0);
+            //animator.Update(0);
             //animator.Play(profile.GetStateNameHash(playingState), playRequest.layerIndex, playingTime);
-            animator.SetFloat(profile.GetParamNameHash("ActionSpeedMultiplier"), playingSpeed);
+            animatorHelper.SetFloat("ActionSpeedMultiplier", playingSpeed);
             //Debug.Log($"Play {playingState}");
+            playingCallback.begin?.Invoke();
         }
 
         if (!string.IsNullOrEmpty(playingState))
@@ -337,6 +334,7 @@ public class MotionHandler : MonoBehaviour
                         case 0: // Play once
                             playRequests.RemoveAt(0);
                             playingState = default;
+                            playingCallback.end?.Invoke();
                             //Debug.Log($"End {playingState}");
                             break;
                         case -1: // Loop forever
@@ -379,15 +377,73 @@ public class MotionHandler : MonoBehaviour
     }
 #endif
 
-    internal class AnimatorTracker : MonoBehaviour
+    public class MotionAnimatorHelper : MonoBehaviour
     {
-        Animator animator;
+        public Animator animator;
+        public Animator[] subAnimators;
+
+        public AnimationClipOverrides clipOverrides;
+        public AnimatorOverrideController overrideController;
+
         MotionHandler motion;
 
         private void Awake()
         {
             animator = GetComponent<Animator>();
             motion = GetComponentInParent<MotionHandler>();
+
+            var tmpList = new List<Animator>();
+            var animators = animator.transform.parent.GetComponentsInChildren<Animator>();
+            foreach (var a in animators)
+            {
+                a.applyRootMotion = false;
+                a.cullingMode = AnimatorCullingMode.CullCompletely;
+                //a.keepAnimatorStateOnDisable = true;
+                a.fireEvents = false;
+
+                if (a != animator && a.transform.IsChildOf(animator.transform))
+                {
+                    a.avatar = animator.avatar;
+                    tmpList.Add(a);
+                }
+            }
+
+            subAnimators = tmpList.ToArray();
+        }
+
+        public void SetAnimatorOverrideController(AnimatorOverrideController controller)
+        {
+            overrideController = controller;
+            animator.runtimeAnimatorController = overrideController;
+            clipOverrides = new AnimationClipOverrides(overrideController.overridesCount);
+            overrideController.GetOverrides(clipOverrides);
+
+            foreach (var a in subAnimators)
+                a.runtimeAnimatorController = controller;
+        }
+
+        public void Play(string stateName, int layerIndex, float normalizedTime)
+        {
+            var stateNameHash = motion.profile.GetStateNameHash(stateName);
+            animator.Play(stateNameHash, layerIndex, normalizedTime);
+            foreach (var a in subAnimators)
+                a.Play(stateNameHash, layerIndex, normalizedTime);
+        }
+
+        public void CrossFadeInFixedTime(int stateNameHash, float transitionDuration, int layerIndex,
+            float normalizedTime)
+        {
+            animator.CrossFadeInFixedTime(stateNameHash, transitionDuration, layerIndex, normalizedTime);
+            foreach (var a in subAnimators)
+                a.CrossFadeInFixedTime(stateNameHash, transitionDuration, layerIndex, normalizedTime);
+        }
+
+        public void SetFloat(string paramName, float value)
+        {
+            var paramNameHash = motion.profile.GetParamNameHash(paramName);
+            animator.SetFloat(paramNameHash, value);
+            foreach (var a in subAnimators)
+                a.SetFloat(paramNameHash, value);
         }
 
         private void OnAnimatorMove()
@@ -397,7 +453,7 @@ public class MotionHandler : MonoBehaviour
         }
     }
 
-    internal class AnimationClipOverrides : List<KeyValuePair<AnimationClip, AnimationClip>>
+    public class AnimationClipOverrides : List<KeyValuePair<AnimationClip, AnimationClip>>
     {
         public AnimationClipOverrides(int capacity) : base(capacity)
         {

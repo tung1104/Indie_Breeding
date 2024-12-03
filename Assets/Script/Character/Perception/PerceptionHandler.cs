@@ -53,7 +53,7 @@ public class PerceptionHandler : MonoBehaviour
         rvoController.radius = capsuleRadius;
         rvoController.height = capsuleHeight;
         rvoController.center = capsuleHeight / 2f;
-        // rvoController.agentTimeHorizon = 0.5f;
+        rvoController.agentTimeHorizon = 0.5f;
 
         seeker = gameObject.AddComponent<Seeker>();
         seeker.startEndModifier.exactStartPoint = StartEndModifier.Exactness.Original;
@@ -71,8 +71,6 @@ public class PerceptionHandler : MonoBehaviour
         enemies = new List<PerceptionHandler>(bufferCapacity);
         friends = new List<PerceptionHandler>(bufferCapacity);
 
-        gameObject.layer = PerceptionSystem.Instance.characterLayer;
-
         eyesTransform = new GameObject("Eyes").transform;
         eyesTransform.SetParent(transform);
         eyesTransform.SetLocalPositionAndRotation(Vector3.up * (capsuleHeight - capsuleRadius), Quaternion.identity);
@@ -86,10 +84,14 @@ public class PerceptionHandler : MonoBehaviour
     {
         PerceptionSystem.Instance.Register(this);
         rvoController.enabled = true;
+
+        gameObject.layer = PerceptionSystem.Instance.characterLayer;
     }
 
     void OnDisable()
     {
+        gameObject.layer = LayerMask.NameToLayer("Ignore Raycast");
+
         if (PerceptionSystem.Instance != null)
             PerceptionSystem.Instance.Unregister(this);
         rvoController.enabled = false;
@@ -103,20 +105,32 @@ public class PerceptionHandler : MonoBehaviour
         nearestFriend = null;
         priorityTarget = null;
         boostUpdateNeighbours = false;
+
+        if (priorityTarget)
+            SetPriorityTarget(null);
     }
 
-    public Vector3 GetRandomPoint(float radius = 0, bool useConstantPath = false)
+    public Vector3 GetRandomPoint(Vector3 position = default, float radius = 0, bool useConstantPath = false)
     {
-        Vector3 randomPoint = Vector3.zero;
+        if (position == default) position = transform.position;
+        Vector3 randomPoint;
         if (useConstantPath)
         {
-            int searchLength = Mathf.RoundToInt(radius * 2);
-            ConstantPath path = ConstantPath.Construct(transform.position, searchLength);
+            var searchLength = Mathf.RoundToInt(radius * 200);
+            var path = ConstantPath.Construct(position, searchLength);
 
             AstarPath.StartPath(path);
             path.BlockUntilCalculated();
             //var multipleRandomPoints = PathUtilities.GetPointsOnNodes(path.allNodes, 100);
-            randomPoint = PathUtilities.GetPointsOnNodes(path.allNodes, 1)[0];
+
+            try
+            {
+                randomPoint = PathUtilities.GetPointsOnNodes(path.allNodes, 1)[0];
+            }
+            catch
+            {
+                return position;
+            }
         }
         else if (radius <= 0)
         {
@@ -128,7 +142,7 @@ public class PerceptionHandler : MonoBehaviour
         {
             // Random point inside a circle
             var rndInsideUnitCirce = Random.insideUnitCircle * radius;
-            randomPoint = transform.position + new Vector3(rndInsideUnitCirce.x, 0, rndInsideUnitCirce.y);
+            randomPoint = position + new Vector3(rndInsideUnitCirce.x, 0, rndInsideUnitCirce.y);
         }
 
         return randomPoint;
@@ -143,6 +157,13 @@ public class PerceptionHandler : MonoBehaviour
 
     void OnPathComplete(Path p)
     {
+        if (p.error)
+        {
+            // Debug.Log($"{name} error on path: {p.errorLog}");
+            ReleaseCurrentPath();
+            return;
+        }
+
         // Release the previous path back to the pool
         path?.Release(this);
         path = p as ABPath;
@@ -162,6 +183,11 @@ public class PerceptionHandler : MonoBehaviour
         float projectionLengthSquared = Vector3.Dot(mineDirection, direction);
         // Check if minePosition has passed 'to' along the 'from' -> 'to' direction
         return projectionLengthSquared > segmentLengthSquared;
+    }
+
+    public float RelativeDistanceToTarget(Vector3 targetPosition)
+    {
+        return Vector3.Distance(pathDestination != default ? pathDestination : transform.position, targetPosition);
     }
 
     public void ReleaseCurrentPath()
@@ -238,6 +264,10 @@ public class PerceptionHandler : MonoBehaviour
 
         if (boostUpdateNeighbours)
             UpdateNeighbors(deltaTime);
+
+        // Check target is valid (temporary)
+        if (priorityTarget && !priorityTarget.enabled)
+            SetPriorityTarget(null);
     }
 
     public void BalancedUpdate(float deltaTime)
@@ -263,7 +293,10 @@ public class PerceptionHandler : MonoBehaviour
     void UpdateNeighbors(float deltaTime)
     {
         // Find the nearest enemy and friend
-        PerceptionHandler priorityTarget = this.priorityTarget;
+        var candidateTarget = this.priorityTarget;
+        if (candidateTarget && !CheckTargetIsInVision(candidateTarget))
+            candidateTarget = null;
+
         nearestEnemy = null;
         nearestFriend = null;
         float distToEnemy = viewDistance, distToFriend = viewDistance;
@@ -290,6 +323,9 @@ public class PerceptionHandler : MonoBehaviour
                         nearestEnemy = perceivable;
 
                         enemies.Insert(0, perceivable);
+                        
+                        // Choose the nearest enemy as the target
+                        candidateTarget = nearestEnemy;
                     }
                     else
                         enemies.Add(perceivable);
@@ -306,6 +342,12 @@ public class PerceptionHandler : MonoBehaviour
                     }
                     else
                         friends.Add(perceivable);
+
+                    // Ask for help
+                    if (!candidateTarget && perceivable.priorityTarget)
+                        candidateTarget = perceivable.priorityTarget;
+                    else if (!perceivable.priorityTarget && candidateTarget)
+                        perceivable.SetPriorityTarget(candidateTarget);
                 }
             }
         }
@@ -322,21 +364,22 @@ public class PerceptionHandler : MonoBehaviour
                     : Mathf.Min(sphereCastRadius + deltaTime * viewDistance, viewDistance);
         }
 
-        if (nearestEnemy)
-            priorityTarget = nearestEnemy;
-        else if (priorityTarget && !CheckTargetIsInVision(priorityTarget))
-            priorityTarget = null;
+        // if (!candidateTarget && nearestEnemy)
+        //     candidateTarget = nearestEnemy;
 
-        if (this.priorityTarget != priorityTarget)
-        {
-            this.priorityTarget = priorityTarget;
-            targetChangedCallback?.Invoke(priorityTarget);
-        }
+        if (priorityTarget != candidateTarget)
+            SetPriorityTarget(candidateTarget);
+    }
+
+    public void SetPriorityTarget(PerceptionHandler target, float rememberDuration = 0)
+    {
+        priorityTarget = target;
+        targetChangedCallback?.Invoke(target);
     }
 
     bool CheckTargetIsInVision(PerceptionHandler target)
     {
-        if (!target.enabled || !target.gameObject.activeSelf) return false;
+        if (!target.enabled) return false;
 
         // Check the distance between the object and the target
         Vector3 directionToTarget = target.heartTransform.position - eyesTransform.position;

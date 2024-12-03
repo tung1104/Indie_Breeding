@@ -10,19 +10,19 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a2a94c2131b8446bd8324a7a3e3b8baa, type: 3}
-  m_Name: ActiveAbility_SeaDragon_3 1
+  m_Name: ActiveAbility_DragonFire
   m_EditorClassIdentifier: 
   cooldown: 1
   duration: 0
-  animationClip: {fileID: -2811291941550168991, guid: 77f062f300dcce24c97cef3c946ae3b3, type: 3}
+  animationClip: {fileID: 7400000, guid: ce8b91eea3deacc4291aee26457a92c4, type: 3}
   animationForceLength: 0
   animationEvents:
   - eventName: ThrowPresenter
-    normalizedTime: 0.15
+    normalizedTime: 0.2
     eventParam1: Flamethrower_01
     eventParam2: Mouth
   - eventName: RecallPresenter
-    normalizedTime: 0.57
+    normalizedTime: 0.9
     eventParam1: 
     eventParam2: 
   animationApplyRootMotion: 0

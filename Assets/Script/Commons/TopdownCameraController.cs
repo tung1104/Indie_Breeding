@@ -71,9 +71,9 @@ public class TopdownCameraController : StandardSingleton<TopdownCameraController
             UpdateCameraPosition(Time.deltaTime);
         }
 
-        // transform.position = scroller.GetCameraPosition(camera, worldBounds);
-        transform.position = Vector3.Lerp(transform.position,
-            scroller.GetCameraPosition(camera, worldBounds), Time.deltaTime * 20);
+        transform.position = scroller.GetCameraPosition(camera, worldBounds);
+        // transform.position = Vector3.Lerp(transform.position,
+        //     scroller.GetCameraPosition(camera, worldBounds), Time.deltaTime * 20);
     }
 
     private void OnDrawGizmos()

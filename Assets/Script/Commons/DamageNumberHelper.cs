@@ -6,16 +6,19 @@ using UnityEngine;
 public static class DamageNumberHelper
 {
     static Dictionary<string, DamageNumber> damageNumberPrefabs;
+    static DamageNumber textPrefab;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     static void Initialize()
     {
         damageNumberPrefabs = new Dictionary<string, DamageNumber>();
-        var prefabs = Resources.LoadAll<DamageNumber>($"DamageNumbers");
+        var prefabs = Resources.LoadAll<DamageNumber>("DamageNumbers");
         foreach (var prefab in prefabs)
         {
             damageNumberPrefabs.Add(prefab.name, prefab);
         }
+        
+        textPrefab = Resources.Load<DamageNumber>("DamageNumbers/CustomText");
 
         Application.quitting += UnInitialize;
     }
@@ -34,5 +37,10 @@ public static class DamageNumberHelper
         {
             prefab.Spawn(position, value);
         }
+    }
+    
+    public static void ShowCustomText(string text, Vector3 position)
+    {
+        textPrefab.Spawn(position, text);
     }
 }

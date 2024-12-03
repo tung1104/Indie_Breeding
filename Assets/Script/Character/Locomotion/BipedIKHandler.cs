@@ -21,6 +21,11 @@ public class BipedIKHandler : MonoBehaviour
             leftHand = animator.GetBoneTransform(HumanBodyBones.LeftHand);
             rightHand = animator.GetBoneTransform(HumanBodyBones.RightHand);
             head = animator.GetBoneTransform(HumanBodyBones.Head);
+
+            // var leftHandGrap = leftHand.Find("L_hand_grap_point");
+            // var rightHandGrap = rightHand.Find("R_hand_grap_point");
+            // if (leftHandGrap) leftHand = leftHandGrap;
+            // if (rightHandGrap) rightHand = rightHandGrap;
         }
     }
 }

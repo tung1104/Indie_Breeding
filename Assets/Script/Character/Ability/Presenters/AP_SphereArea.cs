@@ -14,10 +14,11 @@ public class AP_SphereArea : AbilityPresenter
             1 << abInstance.owner.gameObject.layer);
         foreach (var hit in hits)
         {
-            if (!hit.TryGetComponent(out Unit unit) || unit == abInstance.owner) continue;
-            abInstance.owner.DealDamage(unit, new DamageInfo()
+            if (!hit.TryGetComponent(out Unit unit) || !CheckTargetIsValid(unit)) continue;
+            unit.TakeDamage(abInstance.owner, new DamageInfo()
             {
                 damage = damage,
+                damageType = damageType,
                 impactForce = impactForce,
                 impactDirection = (unit.transform.position - transform.position).normalized,
                 impactPoint = unit.transform.position

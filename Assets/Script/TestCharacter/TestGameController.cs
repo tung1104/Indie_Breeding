@@ -13,18 +13,20 @@ public class TestGameController : MonoBehaviour
     public Bounds idleWorldBounds;
     Bounds actionWorldBounds;
 
-    void Start()
+    IEnumerator Start()
     {
         playActionPanel.SetPlayerCharacter(playerCharacter);
 
-        ProjectileManager.Instance.SubscribeOnHit((Unit sender, Unit receiver, DamageInfo info) =>
-        {
-            //Debug.Log($"Projectile of {sender.name} hit {receiver.name} with {info.damage} damage");
-            receiver.TakeDamage(sender, info);
-        });
+        // ProjectileManager.Instance.SubscribeOnHit((Unit sender, Unit receiver, DamageInfo info) =>
+        // {
+        //     //Debug.Log($"Projectile of {sender.name} hit {receiver.name} with {info.damage} damage");
+        //     receiver.TakeDamage(sender, info);
+        // });
 
         actionWorldBounds = TopdownCameraController.Instance.worldBounds;
         SetPlayActionPanel(true);
+
+        yield return StartCoroutine(PerceptionSystem.Instance.Initialize());
     }
 
     void SetPlayActionPanel(bool active)

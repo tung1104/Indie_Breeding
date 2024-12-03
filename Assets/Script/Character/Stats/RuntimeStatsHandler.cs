@@ -2,6 +2,9 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
+using Object = UnityEngine.Object;
+using Random = UnityEngine.Random;
 
 public enum RuntimeStatsBuffType
 {
@@ -12,14 +15,97 @@ public enum RuntimeStatsBuffType
     PhysicalDamage,
     PhysicalResistance,
     CriticalChance,
-    CriticalDamage,
+    CriticalDamageMultiplier,
     CriticalResistance,
     MagicalDamage,
     MagicalResistance,
     Accuracy,
     Evasion,
     AttackSpeed,
-    MovementSpeed,
+    AttackRange,
+}
+
+[Serializable]
+public class RuntimeStatsData
+{
+    public RuntimeStatsCapacity healthPoint;
+    public RuntimeStatsCapacity manaPoint;
+
+    public float physicalDamage;
+    public float physicalResistance;
+    public float criticalChance;
+    public float criticalDamageMultiplier;
+    public float criticalResistance;
+    public float magicalDamage;
+    public float magicalResistance;
+
+    public float accuracy;
+    public float evasion;
+
+    public float attackSpeed;
+    public float attackRange;
+
+    public bool ComputeHitOrMiss(float checkAccuracy)
+    {
+        if (evasion <= 0) return true;
+        var chanceToHit = 1 - Mathf.Clamp01(evasion - checkAccuracy);
+        return Random.value < chanceToHit;
+    }
+
+    public float ComputeFinalDamage(float baseDamage, DamageType damageType)
+    {
+        var finalDamage = baseDamage;
+
+        switch (damageType)
+        {
+            case DamageType.Physical:
+            case DamageType.Critical:
+                // Physical Damage Reduction Formula
+                var armorReduction = physicalResistance / (physicalResistance + 5);
+                if (damageType == DamageType.Critical)
+                    armorReduction = (physicalResistance + criticalResistance) /
+                                     (physicalResistance + criticalResistance + 10);
+                finalDamage = baseDamage * (1 - armorReduction);
+                break;
+            case DamageType.Magical:
+                // Magical Damage Reduction Formula
+                var effectiveReduction = magicalResistance / (1 + magicalResistance);
+                finalDamage = baseDamage * (1 - effectiveReduction);
+                break;
+            case DamageType.Pure:
+                // Pure Damage ignores resistances
+                finalDamage = baseDamage;
+                break;
+        }
+
+        return Mathf.Max(finalDamage, 0); // Ensure damage is non-negative
+    }
+
+    public RuntimeStatsData Clone(byte level = 0)
+    {
+        var clone = (RuntimeStatsData)MemberwiseClone();
+        clone.healthPoint = new RuntimeStatsCapacity(healthPoint.maxValue);
+        clone.manaPoint = new RuntimeStatsCapacity(manaPoint.maxValue);
+
+        // Level scaling factor based on logarithmic growth
+        var levelFactor = Mathf.Log(level + 2); // +2 avoids log(1) at level 0
+
+        // Adjust stats based on Dota 2 scaling philosophy
+        clone.healthPoint.maxValue += Mathf.RoundToInt(200 * levelFactor); // Health scales significantly with level
+        clone.manaPoint.maxValue += Mathf.RoundToInt(100 * levelFactor); // Mana scales slightly less
+        clone.physicalDamage += 10 * levelFactor; // Incremental physical damage growth
+        clone.physicalResistance += 2 * levelFactor; // Small armor increase per level
+        clone.criticalChance += 0.005f * levelFactor; // Minimal increase in crit chance
+        clone.criticalDamageMultiplier += 0.01f * levelFactor; // Critical damage multiplier grows slowly
+        clone.criticalResistance += 0.005f * levelFactor; // Small boost to critical resistance
+        clone.magicalDamage += 8 * levelFactor; // Magic damage grows moderately
+        clone.magicalResistance += 0.01f * levelFactor; // Gradual increase in magic resistance
+        clone.accuracy += 0.002f * levelFactor; // Small accuracy boost
+        clone.evasion += 0.002f * levelFactor; // Small evasion boost
+        clone.attackSpeed += 0.01f * levelFactor; // Incremental attack speed growth
+
+        return clone;
+    }
 }
 
 [Serializable]
@@ -30,6 +116,8 @@ public struct RuntimeStatsBuff
     [Range(0, 1)] public float percent;
     public float duration;
     public string effectId;
+    public bool stack;
+    public string buffId;
 
     [Tooltip("True: Áp dụng từ từ, False: Áp dụng ngay lập tức và phục hồi khi hết thời gian")]
     public bool applyOverTime;
@@ -37,48 +125,32 @@ public struct RuntimeStatsBuff
     [HideInInspector] public float applyValueTotal;
     [HideInInspector] public float timeElapsed;
     [HideInInspector] public ParticleFX effectInstance;
+    [HideInInspector] public Object caster;
+
+    public void Init()
+    {
+        buffId = Guid.NewGuid().ToString();
+    }
+}
+
+[Serializable]
+public class RuntimeStatsCapacity
+{
+    public float maxValue;
+    public float value;
+
+    public float Normalized => value / maxValue;
+
+    public RuntimeStatsCapacity(float maxValue, float value = 0)
+    {
+        this.maxValue = maxValue;
+        this.value = value > 0 ? value : maxValue;
+    }
 }
 
 public class RuntimeStatsHandler : MonoBehaviour
 {
-    [Serializable]
-    public class Capacity
-    {
-        public float maxValue;
-        public float value;
-
-        public float Percent => value / maxValue;
-
-        public Capacity(float maxValue)
-        {
-            this.maxValue = value = maxValue;
-        }
-
-        public Capacity(float maxValue, float value)
-        {
-            this.maxValue = maxValue;
-            this.value = value;
-        }
-    }
-
-    public Capacity healthPoint;
-    public Capacity manaPoint;
-
-    public float physicalDamage;
-    public float physicalResistance;
-    public float criticalChance;
-    public float criticalDamage;
-    public float criticalResistance;
-    public float magicalDamage;
-    public float magicalResistance;
-
-    public float accuracy;
-    public float evasion;
-
-    public float attackSpeed;
-    public float movementSpeed;
-
-    public float experience;
+    public RuntimeStatsData data;
 
     public bool isAlive;
 
@@ -98,35 +170,47 @@ public class RuntimeStatsHandler : MonoBehaviour
 
     private void OnDisable()
     {
+        RemoveAllBuffs();
+    }
+
+    void RemoveAllBuffs()
+    {
         foreach (var buff in buffs)
             if (buff.effectInstance)
                 buff.effectInstance.ForceStop();
         buffs.Clear();
     }
 
-    private void Update()
+    public void ManualUpdate(float deltaTime)
     {
-        if (Input.GetKeyDown(KeyCode.Space))
-            AddBuff(new RuntimeStatsBuff()
-            {
-                type = RuntimeStatsBuffType.HealthPoint,
-                value = -10,
-                duration = 5,
-                applyOverTime = true
-            });
-
-        var isAliveNow = healthPoint.value > 0;
+        var isAliveNow = data.healthPoint.value > 0;
         if (!isAlive.Equals(isAliveNow))
         {
             isAlive = isAliveNow;
-
             if (!isAlive)
-                OnDisable();
+                RemoveAllBuffs();
         }
     }
 
     public void AddBuff(RuntimeStatsBuff buff)
     {
+        if (!isAlive) return;
+        if (string.IsNullOrEmpty(buff.buffId))
+        {
+            Debug.LogError($"Buff {buff.effectId} has no buffId, stack = 'false' will not work");
+        }
+        else if (!buff.stack)
+        {
+            for (var i = 0; i < buffs.Count; i++)
+            {
+                var tmp = buffs[i];
+                if (!tmp.buffId.Equals(buff.buffId)) continue;
+                tmp.timeElapsed = 0;
+                buffs[i] = tmp;
+                return;
+            }
+        }
+
         ObjectPoolManager.Instances.TryGetValue("FXPool", out var fxPool);
         if (fxPool.TrySpawnInstance(buff.effectId, unit.transform.position + unit.bounds.center,
                 transform.rotation, out buff.effectInstance))
@@ -144,21 +228,21 @@ public class RuntimeStatsHandler : MonoBehaviour
     {
         return type switch
         {
-            RuntimeStatsBuffType.HealthPoint => healthPoint.value,
-            RuntimeStatsBuffType.MaxHealthPoint => healthPoint.maxValue,
-            RuntimeStatsBuffType.ManaPoint => manaPoint.value,
-            RuntimeStatsBuffType.MaxManaPoint => manaPoint.maxValue,
-            RuntimeStatsBuffType.PhysicalDamage => physicalDamage,
-            RuntimeStatsBuffType.PhysicalResistance => physicalResistance,
-            RuntimeStatsBuffType.CriticalChance => criticalChance,
-            RuntimeStatsBuffType.CriticalDamage => criticalDamage,
-            RuntimeStatsBuffType.CriticalResistance => criticalResistance,
-            RuntimeStatsBuffType.MagicalDamage => magicalDamage,
-            RuntimeStatsBuffType.MagicalResistance => magicalResistance,
-            RuntimeStatsBuffType.Accuracy => accuracy,
-            RuntimeStatsBuffType.Evasion => evasion,
-            RuntimeStatsBuffType.AttackSpeed => attackSpeed,
-            RuntimeStatsBuffType.MovementSpeed => movementSpeed,
+            RuntimeStatsBuffType.HealthPoint => data.healthPoint.value,
+            RuntimeStatsBuffType.MaxHealthPoint => data.healthPoint.maxValue,
+            RuntimeStatsBuffType.ManaPoint => data.manaPoint.value,
+            RuntimeStatsBuffType.MaxManaPoint => data.manaPoint.maxValue,
+            RuntimeStatsBuffType.PhysicalDamage => data.physicalDamage,
+            RuntimeStatsBuffType.PhysicalResistance => data.physicalResistance,
+            RuntimeStatsBuffType.CriticalChance => data.criticalChance,
+            RuntimeStatsBuffType.CriticalDamageMultiplier => data.criticalDamageMultiplier,
+            RuntimeStatsBuffType.CriticalResistance => data.criticalResistance,
+            RuntimeStatsBuffType.MagicalDamage => data.magicalDamage,
+            RuntimeStatsBuffType.MagicalResistance => data.magicalResistance,
+            RuntimeStatsBuffType.Accuracy => data.accuracy,
+            RuntimeStatsBuffType.Evasion => data.evasion,
+            RuntimeStatsBuffType.AttackSpeed => data.attackSpeed,
+            RuntimeStatsBuffType.AttackRange => data.attackRange,
             _ => 0
         };
     }
@@ -214,49 +298,49 @@ public class RuntimeStatsHandler : MonoBehaviour
         switch (buff.type)
         {
             case RuntimeStatsBuffType.HealthPoint:
-                healthPoint.value += valueToApply;
+                data.healthPoint.value += valueToApply;
                 break;
             case RuntimeStatsBuffType.MaxHealthPoint:
-                healthPoint.maxValue += valueToApply;
+                data.healthPoint.maxValue += valueToApply;
                 break;
             case RuntimeStatsBuffType.ManaPoint:
-                manaPoint.value += valueToApply;
+                data.manaPoint.value += valueToApply;
                 break;
             case RuntimeStatsBuffType.MaxManaPoint:
-                manaPoint.maxValue += valueToApply;
+                data.manaPoint.maxValue += valueToApply;
                 break;
             case RuntimeStatsBuffType.PhysicalDamage:
-                physicalDamage += valueToApply;
+                data.physicalDamage += valueToApply;
                 break;
             case RuntimeStatsBuffType.PhysicalResistance:
-                physicalResistance += valueToApply;
+                data.physicalResistance += valueToApply;
                 break;
             case RuntimeStatsBuffType.CriticalChance:
-                criticalChance += valueToApply;
+                data.criticalChance += valueToApply;
                 break;
-            case RuntimeStatsBuffType.CriticalDamage:
-                criticalDamage += valueToApply;
+            case RuntimeStatsBuffType.CriticalDamageMultiplier:
+                data.criticalDamageMultiplier += valueToApply;
                 break;
             case RuntimeStatsBuffType.CriticalResistance:
-                criticalResistance += valueToApply;
+                data.criticalResistance += valueToApply;
                 break;
             case RuntimeStatsBuffType.MagicalDamage:
-                magicalDamage += valueToApply;
+                data.magicalDamage += valueToApply;
                 break;
             case RuntimeStatsBuffType.MagicalResistance:
-                magicalResistance += valueToApply;
+                data.magicalResistance += valueToApply;
                 break;
             case RuntimeStatsBuffType.Accuracy:
-                accuracy += valueToApply;
+                data.accuracy += valueToApply;
                 break;
             case RuntimeStatsBuffType.Evasion:
-                evasion += valueToApply;
+                data.evasion += valueToApply;
                 break;
             case RuntimeStatsBuffType.AttackSpeed:
-                attackSpeed += valueToApply;
+                data.attackSpeed += valueToApply;
                 break;
-            case RuntimeStatsBuffType.MovementSpeed:
-                movementSpeed += valueToApply;
+            case RuntimeStatsBuffType.AttackRange:
+                data.attackRange += valueToApply;
                 break;
             default:
                 throw new ArgumentOutOfRangeException();
@@ -269,49 +353,49 @@ public class RuntimeStatsHandler : MonoBehaviour
         switch (buff.type)
         {
             case RuntimeStatsBuffType.HealthPoint:
-                healthPoint.value -= buff.applyValueTotal;
+                data.healthPoint.value -= buff.applyValueTotal;
                 break;
             case RuntimeStatsBuffType.MaxHealthPoint:
-                healthPoint.maxValue -= buff.applyValueTotal;
+                data.healthPoint.maxValue -= buff.applyValueTotal;
                 break;
             case RuntimeStatsBuffType.ManaPoint:
-                manaPoint.value -= buff.applyValueTotal;
+                data.manaPoint.value -= buff.applyValueTotal;
                 break;
             case RuntimeStatsBuffType.MaxManaPoint:
-                manaPoint.maxValue -= buff.applyValueTotal;
+                data.manaPoint.maxValue -= buff.applyValueTotal;
                 break;
             case RuntimeStatsBuffType.PhysicalDamage:
-                physicalDamage -= buff.applyValueTotal;
+                data.physicalDamage -= buff.applyValueTotal;
                 break;
             case RuntimeStatsBuffType.PhysicalResistance:
-                physicalResistance -= buff.applyValueTotal;
+                data.physicalResistance -= buff.applyValueTotal;
                 break;
             case RuntimeStatsBuffType.CriticalChance:
-                criticalChance -= buff.applyValueTotal;
+                data.criticalChance -= buff.applyValueTotal;
                 break;
-            case RuntimeStatsBuffType.CriticalDamage:
-                criticalDamage -= buff.applyValueTotal;
+            case RuntimeStatsBuffType.CriticalDamageMultiplier:
+                data.criticalDamageMultiplier -= buff.applyValueTotal;
                 break;
             case RuntimeStatsBuffType.CriticalResistance:
-                criticalResistance -= buff.applyValueTotal;
+                data.criticalResistance -= buff.applyValueTotal;
                 break;
             case RuntimeStatsBuffType.MagicalDamage:
-                magicalDamage -= buff.applyValueTotal;
+                data.magicalDamage -= buff.applyValueTotal;
                 break;
             case RuntimeStatsBuffType.MagicalResistance:
-                magicalResistance -= buff.applyValueTotal;
+                data.magicalResistance -= buff.applyValueTotal;
                 break;
             case RuntimeStatsBuffType.Accuracy:
-                accuracy -= buff.applyValueTotal;
+                data.accuracy -= buff.applyValueTotal;
                 break;
             case RuntimeStatsBuffType.Evasion:
-                evasion -= buff.applyValueTotal;
+                data.evasion -= buff.applyValueTotal;
                 break;
             case RuntimeStatsBuffType.AttackSpeed:
-                attackSpeed -= buff.applyValueTotal;
+                data.attackSpeed -= buff.applyValueTotal;
                 break;
-            case RuntimeStatsBuffType.MovementSpeed:
-                movementSpeed -= buff.applyValueTotal;
+            case RuntimeStatsBuffType.AttackRange:
+                data.attackRange -= buff.applyValueTotal;
                 break;
             default:
                 throw new ArgumentOutOfRangeException();

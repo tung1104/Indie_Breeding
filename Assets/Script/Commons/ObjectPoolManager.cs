@@ -10,8 +10,8 @@ public class ObjectPoolManager : MonoBehaviour
     internal class Pool
     {
         public string name;
-        public PoolObject prefab;
-        public List<PoolObject> instances;
+        public GameObject prefab;
+        public List<PoolObject> activeInstances;
         public List<PoolObject> reserveInstances;
     }
 
@@ -19,16 +19,18 @@ public class ObjectPoolManager : MonoBehaviour
     [SerializeField] string resourcePath;
 
     IndexedDictionary<string, Pool> pools;
+    List<PoolObject> allInstances;
 
     private void Awake()
     {
         Instances.Add(name, this);
 
         pools = new IndexedDictionary<string, Pool>();
+        allInstances = new List<PoolObject>();
 
         var prefabList = new List<GameObject>();
 
-        for (int i = 0; i < transform.childCount; i++)
+        for (var i = 0; i < transform.childCount; i++)
             prefabList.Add(transform.GetChild(i).gameObject);
 
         if (!string.IsNullOrEmpty(resourcePath))
@@ -38,19 +40,17 @@ public class ObjectPoolManager : MonoBehaviour
                     prefabList.Add(obj);
             }
 
-        prefabs = prefabList.ToArray();
-
-        for (int i = 0; i < prefabs.Length; i++)
+        foreach (var prefab in prefabList)
         {
-            var prefab = prefabs[i];
-            prefab.SetActive(false);
+            if (prefab.scene.rootCount > 0)
+                prefab.SetActive(false);
 
             var pool = new Pool()
             {
-                name = prefabs[i].name,
-                prefab = prefabs[i].AddComponent<PoolObject>(),
-                instances = new List<PoolObject>(),
-                reserveInstances = new List<PoolObject>()
+                name = prefab.name,
+                prefab = prefab,
+                activeInstances = new List<PoolObject>(),
+                reserveInstances = new List<PoolObject>(),
             };
 
             pools.Add(pool.name, pool);
@@ -69,19 +69,29 @@ public class ObjectPoolManager : MonoBehaviour
             if (pool.reserveInstances.Count > 0)
             {
                 instance = pool.reserveInstances[0];
-                return true;
             }
             else
             {
-                instance = Instantiate(pool.prefab, transform);
+                var obj = Instantiate(pool.prefab, transform);
+                obj.SetActive(false);
+                instance = obj.AddComponent<PoolObject>();
+                instance.pool = pool;
                 pool.reserveInstances.Add(instance);
-                instance.Pool = pool;
-                return true;
+
+                instance.index = allInstances.Count;
+                allInstances.Add(instance);
             }
+
+            return true;
         }
 
         instance = null;
         return false;
+    }
+
+    public PoolObject GetInstanceByIndex(int index)
+    {
+        return index > -1 && index < allInstances.Count ? allInstances[index] : null;
     }
 
     public bool TryGetReserveOf<T>(string name, out T instance) where T : MonoBehaviour
@@ -147,8 +157,8 @@ public class ObjectPoolManager : MonoBehaviour
     {
         foreach (var pool in pools.Values)
         {
-            for (int i = pool.instances.Count - 1; i >= 0; i--)
-                pool.instances[i].gameObject.SetActive(false);
+            for (int i = pool.activeInstances.Count - 1; i >= 0; i--)
+                pool.activeInstances[i].gameObject.SetActive(false);
         }
     }
 
@@ -156,28 +166,30 @@ public class ObjectPoolManager : MonoBehaviour
     {
         if (pools.TryGetValue(name, out Pool pool))
         {
-            for (int i = pool.instances.Count - 1; i >= 0; i--)
-                pool.instances[i].gameObject.SetActive(false);
+            for (int i = pool.activeInstances.Count - 1; i >= 0; i--)
+                pool.activeInstances[i].gameObject.SetActive(false);
         }
     }
 }
 
 public class PoolObject : MonoBehaviour
 {
-    internal ObjectPoolManager.Pool Pool;
+    internal ObjectPoolManager.Pool pool;
+    internal int index;
+    internal int activeIndex;
 
-    public Action CallbackOnRelease;
+    public Action CallbackOnRelease { get; set; }
 
     private void OnEnable()
     {
-        Pool.instances.Add(this);
-        Pool.reserveInstances.Remove(this);
+        pool.activeInstances.Add(this);
+        pool.reserveInstances.Remove(this);
     }
 
     private void OnDisable()
     {
-        Pool.instances.Remove(this);
-        Pool.reserveInstances.Add(this);
+        pool.activeInstances.Remove(this);
+        pool.reserveInstances.Add(this);
         CallbackOnRelease?.Invoke();
         CallbackOnRelease = null;
     }
